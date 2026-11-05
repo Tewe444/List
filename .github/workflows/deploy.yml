@@ -1,0 +1,35 @@
+name: ZIP entpacken und auf Webserver laden
+
+on:
+  push:
+    branches:
+      - main  # Führt den Workflow aus, sobald Code im 'main'-Branch landet
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Holt den aktuellen Code aus GitHub ab
+      - name: Code auschecken
+        uses: actions/checkout@v4
+
+      # 2. Sucht nach einer .zip-Datei und entpackt sie automatisch
+      - name: ZIP-Datei automatisch entpacken
+        run: |
+          if ls *.zip 1> /dev/null 2>&1; then
+            echo "ZIP-Datei gefunden. Entpacke..."
+            unzip -o "*.zip" -d ./entpackt_webserver
+          else
+            echo "Keine ZIP-Datei im Repository gefunden."
+          fi
+
+      # 3. Lädt die entpackten Dateien auf Ihren Webserver (Beispiel via FTP)
+      - name: Auf Webserver hochladen
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./entpackt_webserver/
+          server-dir: /public_html/  # Ihr Webserver-Verzeichnis
