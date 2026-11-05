@@ -1,7 +1,7 @@
 const C=window.CFG;firebase.initializeApp(C.firebase);const db=firebase.firestore();
 {const tl=document.getElementById('toList');if(tl&&C.listeUrl)tl.href=C.listeUrl}   // Ziel des Pfeil-Buttons (Liste)
 const $=id=>document.getElementById(id),M=$('msgs'),I=$('inp'),IWrap=$('inpWrap'),CancelBtn=$('cancelPrompt'),S=$('send'),KEY='openskyai_chat',VARS_KEY='openskyai_vars',IMP_KEY='openskyai_important',SUG=$('sugg'),LLM=$('llmStatus');
-const GREET={sender:'ai',text:'Hallo ich bin OpenSkyAI ich habe eine info für dich ich bin noch nicht fertig das bedeutet du kannst nicht mit mir chaten und nicht wundern das SpieleFeedback system würde removed wegen einem Sicherheitsrisiko aber du kannst in disen chat mit /ticket SpielFeedback geben😄'};
+const GREET={sender:'ai',text:'Hallo ich bin OpenSkyAI ich bin noch nicht fertig sorry bin hoffenlich bal fertig 😄'};
 let kb=[],busy=false,hist=[];
 let userVars={}; 
 let pendingFuzzy=null; 
