@@ -1,0 +1,59 @@
+{
+  "name": "offline-games",
+  "version": "1.0.0",
+  "private": true,
+  "author": "Offline Games",
+  "description": "Offline-Spielesammlung für Windows, Linux und Web",
+  "main": "desktop.cjs",
+  "scripts": {
+    "start": "electron .",
+    "bundle:web": "node scripts/build-web-bundle.cjs",
+    "dist:windows": "electron-builder --win nsis",
+    "dist:linux": "electron-builder --linux AppImage deb",
+    "dist": "electron-builder --win nsis --linux AppImage deb"
+  },
+  "devDependencies": {
+    "electron-builder": "^26.18.0",
+    "electron": "^45.2.3",
+    "yazl": "^3.3.1"
+  },
+  "build": {
+    "appId": "de.offlinegames.desktop",
+    "productName": "Offline Games",
+    "asar": false,
+    "electronDist": "node_modules/electron/dist",
+    "directories": {
+      "output": "dist-games-installer"
+    },
+    "files": [
+      "index.html",
+      "style.css",
+      "script.js",
+      "seiten.js",
+      "online-consent.js",
+      "preload.cjs",
+      "desktop.cjs",
+      "favicon.svg",
+      "favicon.ico",
+      "apple-touch-icon.png",
+      "seiten/**/*",
+      "!seiten/Detect.ai/**/*",
+      "!seiten/wann-ist/**/*",
+      "!seiten/Gluecksrad/**/*",
+      "!seiten/song/**/*",
+      "!seiten/Encoder/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "include": "installer.nsh"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Game"
+    }
+  }
+}
