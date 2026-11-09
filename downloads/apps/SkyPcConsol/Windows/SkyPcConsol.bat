@@ -3,46 +3,46 @@ setlocal EnableExtensions EnableDelayedExpansion
 title SkyPC Konsole
 
 rem ================================================================
-rem  First-Run Setup: AppData, Datei kopieren & Desktop-Verknüpfung
+rem  Selbstinstallation & AppData-Wechsel (Self-Relocation)
 rem ================================================================
 set "APP_DIR=%APPDATA%\SkyPcConsole"
 set "TARGET_BAT=%APP_DIR%\SkyPcConsole.bat"
 set "TARGET_ICO=%APP_DIR%\SkyPcConsol.ico"
 set "CONFIG_FILE=%APP_DIR%\functions_config.txt"
-
-:: Direkter GitHub-Raw-Link zu deinem Icon:
 set "ICO_URL=https://raw.githubusercontent.com/Tewe444/List/main/downloads/bilder/SkyPcConsol.ico"
 
 if not exist "%APP_DIR%" (
     mkdir "%APP_DIR%" >nul 2>&1
 )
 
-:: Kopiere das Skript in den AppData-Ordner, falls es dort noch nicht läuft
+:: Wenn das Skript nicht aus AppData heraus gestartet wurde, kopieren und installieren
 if /i not "%~f0"=="%TARGET_BAT%" (
     copy /y "%~f0" "%TARGET_BAT%" >nul 2>&1
-)
-
-:: Desktop-Pfad ermitteln
-set "DESKTOP="
-for /f "delims=" %%D in ('powershell -NoProfile -Command "[Environment]::GetFolderPath([Environment+SpecialFolder]::Desktop)"') do set "DESKTOP=%%D"
-if not defined DESKTOP set "DESKTOP=%USERPROFILE%\Desktop"
-
-:: Alte Versionen vom Desktop loeschen (Verknuepfungen und alte Batch-Dateien)
-if exist "!DESKTOP!\Admin Helper.lnk" del /f /q "!DESKTOP!\Admin Helper.lnk" >nul 2>&1
-if exist "!DESKTOP!\SkyPC_Konsole.lnk" del /f /q "!DESKTOP!\SkyPC_Konsole.lnk" >nul 2>&1
-if exist "!DESKTOP!\SkyPC_Konsole.bat" del /f /q "!DESKTOP!\SkyPC_Konsole.bat" >nul 2>&1
-if exist "!DESKTOP!\SkyPcConsole.bat" (
-    if /i not "%~f0"=="!DESKTOP!\SkyPcConsole.bat" del /f /q "!DESKTOP!\SkyPcConsole.bat" >nul 2>&1
-)
-
-:: Neue Verknüpfung "SkyPC Konsole" auf dem Desktop erstellen
-if not exist "!DESKTOP!\SkyPC Konsole.lnk" (
-    :: Lade das Icon herunter, falls es noch nicht in AppData liegt
+    
+    :: Icon herunterladen, falls nicht vorhanden
     if not exist "%TARGET_ICO%" (
         powershell -NoProfile -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%ICO_URL%' -OutFile '%TARGET_ICO%' -ErrorAction Stop } catch {}"
     )
-    :: Erstelle die Verknüpfung per PowerShell mit dem Icon
-    powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut('!DESKTOP!\SkyPC Konsole.lnk'); $sc.TargetPath = '%TARGET_BAT%'; $sc.IconLocation = '%TARGET_ICO%,0'; $sc.Save()"
+    
+    :: Desktop-Pfad ermitteln
+    for /f "delims=" %%D in ('powershell -NoProfile -Command "[Environment]::GetFolderPath([Environment+SpecialFolder]::Desktop)"') do set "DESKTOP=%%D"
+    if not defined DESKTOP set "DESKTOP=%USERPROFILE%\Desktop"
+    
+    :: Alte Verknüpfungen und Reste aufräumen
+    if exist "!DESKTOP!\Admin Helper.lnk" del /f /q "!DESKTOP!\Admin Helper.lnk" >nul 2>&1
+    if exist "!DESKTOP!\SkyPC_Konsole.lnk" del /f /q "!DESKTOP!\SkyPC_Konsole.lnk" >nul 2>&1
+    if exist "!DESKTOP!\SkyPC_Konsole.bat" del /f /q "!DESKTOP!\SkyPC_Konsole.bat" >nul 2>&1
+    if exist "!DESKTOP!\SkyPcConsole.bat" del /f /q "!DESKTOP!\SkyPcConsole.bat" >nul 2>&1
+    
+    :: Neue Verknüpfung "SkyPC Konsole" erstellen
+    if not exist "!DESKTOP!\SkyPC Konsole.lnk" (
+        powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut('!DESKTOP!\SkyPC Konsole.lnk'); $sc.TargetPath = '%TARGET_BAT%'; $sc.IconLocation = '%TARGET_ICO%,0'; $sc.Save()"
+    )
+    
+    :: Neue Version starten und die heruntergeladene alte Datei löschen
+    start "" "%TARGET_BAT%"
+    start /b cmd /c "timeout /t 1 /nobreak >nul & del /f /q "%~f0""
+    exit /b 0
 )
 
 rem ================================================================
@@ -62,7 +62,7 @@ if defined ESC (
 )
 
 rem ================================================================
-rem  Single-Instance Check: Schließt nur die 2. (doppelte) Instanz
+rem  Single-Instance Check
 rem ================================================================
 powershell -NoProfile -Command "$myPath = [System.IO.Path]::GetFullPath('%~f0').Replace('\','\\'); $count = (Get-CimInstance Win32_Process -Filter \"Name = 'cmd.exe'\").Where({ $_.CommandLine -and $_.CommandLine -like \"*$myPath*\" }).Count; if ($count -gt 1) { exit 99 }"
 if errorlevel 99 (
@@ -78,22 +78,15 @@ rem ================================================================
 for /f "delims=" %%T in ('powershell -NoProfile -Command "[Environment]::TickCount"') do set "LAST_ACTION_TICK=%%T"
 
 rem ================================================================
-rem  Konfiguration laden & Autostart / Autokill beim Oeffnen (Sicher)
+rem  Konfiguration laden & Autostart / Autokill beim Oeffnen
 rem ================================================================
 if exist "%CONFIG_FILE%" (
     for /f "usebackq tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
         if /i "%%A"=="START_PROG" (
             set "prog_path=%%B"
             if defined prog_path (
-                for %%I in ("!prog_path!") do set "chk_name=%%~nxI"
-                if /i not "!chk_name!"=="%~nx0" (
-                    echo "!prog_path!" | findstr /i "http://" >nul
-                    if errorlevel 1 (
-                        echo "!prog_path!" | findstr /i "https://" >nul
-                        if errorlevel 1 (
-                            powershell -NoProfile -Command "try{if(Test-Path -LiteralPath $env:prog_path){Start-Process -FilePath $env:prog_path;exit 0}exit 1}catch{exit 1}"
-                        )
-                    )
+                if exist "!prog_path!" (
+                    start "" "!prog_path!"
                 )
             )
         )
@@ -101,10 +94,7 @@ if exist "%CONFIG_FILE%" (
             set "kill_name=%%B"
             if defined kill_name (
                 if /i not "!kill_name:~-4!"==".exe" set "kill_name=!kill_name!.exe"
-                for %%I in ("!kill_name!") do set "chk_kill=%%~nxI"
-                if /i not "!chk_kill!"=="%~nx0" (
-                    taskkill /f /im "!kill_name!" >nul 2>&1
-                )
+                taskkill /f /im "!kill_name!" >nul 2>&1
             )
         )
     )
@@ -132,7 +122,7 @@ echo  /close-edge            - Force close all Microsoft Edge processes
 echo  /create [path]         - Create folders/files on Desktop (e.g. /create a/b/file.txt)
 echo  /kill-cookie           - Delete Chrome/Edge cookies
 echo  /sysinfo               - Show system information (CPU, RAM, Uptime, Drive)
-echo  /clean-temp            - Clear temporary files (%temp% and Windows Temp)
+echo  /clean-temp            - Clear temporary files (AppData Temp and Windows Temp)
 echo  /youtube speed [X]     - YouTube playback speed, x = 0.01 to 10
 echo  /youtube design [x]    - YouTube theme: default, dark or white
 echo  /shutdown              - Shut down the PC (10-second countdown; any key cancels)
@@ -191,10 +181,10 @@ goto show_menu
 
 :do_exit
 endlocal
-exit /b 0
+exit
 
 rem ================================================================
-rem  Cooldown-Pruefung (10 Sekunden)
+rem  Cooldown-Pruefung
 rem ================================================================
 :check_cooldown
 if not defined LAST_ACTION_TICK exit /b 0
@@ -207,7 +197,7 @@ if errorlevel 10 (
 exit /b 0
 
 rem ================================================================
-rem  /speedtest Command (Download & Upload)
+rem  /speedtest Command
 rem ================================================================
 :do_speedtest
 echo.
@@ -273,7 +263,7 @@ set "status_color=!GREEN!"
 goto show_menu
 
 rem ================================================================
-rem  /functions Command
+rem  /functions Command & Routines
 rem ================================================================
 :do_functions
 if not exist "%CONFIG_FILE%" (
@@ -292,151 +282,149 @@ echo  [Z] Config : View current config or reset configuration file
 echo  [C] Cancel : Cancel and return to main menu
 echo ================================================================
 choice /c YXZC /n /m "Select an option (Y, X, Z, C): "
-set "func_choice=%errorlevel%"
-
-if "!func_choice!"=="4" (
+if errorlevel 4 (
     set "status_msg=Functions action canceled."
     set "status_color=!YELLOW!"
     goto show_menu
 )
+if errorlevel 3 goto func_config_view
+if errorlevel 2 goto func_kill_add
+if errorlevel 1 goto func_start_add
+goto show_menu
 
-if "!func_choice!"=="3" (
+:func_config_view
+echo.
+echo ================================================================
+echo CURRENT CONFIGURATION FILE:
+echo ================================================================
+if exist "%CONFIG_FILE%" type "%CONFIG_FILE%"
+echo ================================================================
+echo  [R] Reset/Delete config file
+echo  [C] Cancel / Back to menu
+echo ================================================================
+choice /c RC /n /m "Select option (R, C): "
+if errorlevel 2 (
+    set "status_msg=Returned to menu."
+    set "status_color=!GREEN!"
+    goto show_menu
+)
+if exist "%CONFIG_FILE%" del "%CONFIG_FILE%"
+set "status_msg=Configuration reset successfully."
+set "status_color=!YELLOW!"
+goto show_menu
+
+:func_start_add
+echo.
+echo ================================================================
+echo  START CONFIGURATION METHOD
+echo ================================================================
+echo  [X] Explore
+echo  [Y] Manuell
+echo ================================================================
+choice /c XY /n /m "Select method ([X] Explore / [Y] Manuell): "
+set "SELECTED_PROG="
+if errorlevel 2 (
     echo.
-    echo ================================================================
-    echo CURRENT CONFIGURATION FILE:
-    echo ================================================================
-    type "%CONFIG_FILE%"
-    echo ================================================================
-    echo  [R] Reset/Delete config file
-    echo  [C] Cancel / Back to menu
-    echo ================================================================
-    choice /c RC /n /m "Select option (R, C): "
-    if errorlevel 2 (
-        set "status_msg=Returned to menu."
-        set "status_color=!GREEN!"
-        goto show_menu
+    set /p "SELECTED_PROG=Enter path manually (or press Enter to cancel): "
+) else (
+    echo.
+    echo Opening file Explorer dialog...
+    for /f "delims=" %%F in ('powershell -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; $d=New-Object System.Windows.Forms.OpenFileDialog; $d.Filter='All files (*.*)|*.*|Applications (*.exe)|*.exe'; if($d.ShowDialog() -eq 'OK'){$d.FileName}"') do (
+        set "SELECTED_PROG=%%F"
     )
-    if exist "%CONFIG_FILE%" del "%CONFIG_FILE%"
-    set "status_msg=Configuration reset successfully."
+)
+
+if not defined SELECTED_PROG (
+    set "status_msg=No file specified. Action canceled."
     set "status_color=!YELLOW!"
     goto show_menu
 )
 
-if "!func_choice!"=="1" (
-    echo.
-    echo ================================================================
-    echo  START CONFIGURATION METHOD
-    echo ================================================================
-    echo  [X] Explore
-    echo  [Y] Manuell
-    echo ================================================================
-    choice /c XY /n /m "Select method ([X] Explore / [Y] Manuell): "
-    set "SELECTED_PROG="
-    if errorlevel 2 (
-        echo.
-        set /p "SELECTED_PROG=Enter path manually (or press Enter to cancel): "
-    ) else (
-        echo.
-        echo Opening file Explorer dialog...
-        for /f "delims=" %%F in ('powershell -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; $d=New-Object System.Windows.Forms.OpenFileDialog; $d.Filter='All files (*.*)|*.*|Applications (*.exe)|*.exe'; if($d.ShowDialog() -eq 'OK'){$d.FileName}"') do (
-            set "SELECTED_PROG=%%F"
-        )
-    )
-
-    if not defined SELECTED_PROG (
-        set "status_msg=No file specified. Action canceled."
-        set "status_color=!YELLOW!"
-        goto show_menu
-    )
-    
-    for %%I in ("!SELECTED_PROG!") do set "sel_name=%%~nxI"
-    if /i "!sel_name!"=="%~nx0" (
-        set "status_msg=Error: You cannot add SkyPC Konsole to functions!"
-        set "status_color=!RED!"
-        goto show_menu
-    )
-
-    echo.
-    echo Selected file: !SELECTED_PROG!
-    echo Do you want to save this program to autostart configuration?
-    echo  [Y] Yes, save configuration
-    echo  [N] No, cancel operation
-    choice /c YN /n /m "Choice (Y/N): "
-    if errorlevel 2 (
-        set "status_msg=Start configuration canceled by user."
-        set "status_color=!YELLOW!"
-        goto show_menu
-    )
-
-    (
-        echo START_PROG=!SELECTED_PROG!
-    ) >> "%CONFIG_FILE%"
-
-    set "status_msg=Start program successfully added to configuration."
-    set "status_color=!GREEN!"
+for %%I in ("!SELECTED_PROG!") do set "sel_name=%%~nxI"
+if /i "!sel_name!"=="%~nx0" (
+    set "status_msg=Error: You cannot add SkyPC Konsole to functions!"
+    set "status_color=!RED!"
     goto show_menu
 )
 
-if "!func_choice!"=="2" (
-    echo.
-    echo ================================================================
-    echo  KILL CONFIGURATION METHOD
-    echo ================================================================
-    echo  [X] Explore
-    echo  [Y] Manuell
-    echo ================================================================
-    choice /c XY /n /m "Select method ([X] Explore / [Y] Manuell): "
-    set "KILL_PROG="
-    if errorlevel 2 (
-        echo.
-        set /p "KILL_PROG=Enter process name (e.g. msedge.exe or discord.exe): "
-    ) else (
-        echo.
-        echo Opening file Explorer dialog...
-        for /f "delims=" %%F in ('powershell -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; $d=New-Object System.Windows.Forms.OpenFileDialog; $d.Filter='Applications (*.exe)|*.exe|All files (*.*)|*.*'; if($d.ShowDialog() -eq 'OK'){$d.SafeFileName}"') do (
-            set "KILL_PROG=%%F"
-        )
-    )
-
-    if not defined KILL_PROG (
-        set "status_msg=No kill process specified. Action canceled."
-        set "status_color=!YELLOW!"
-        goto show_menu
-    )
-
-    for %%I in ("!KILL_PROG!") do set "kill_chk=%%~nxI"
-    if /i "!kill_chk!"=="%~nx0" (
-        set "status_msg=Error: You cannot target SkyPC Konsole!"
-        set "status_color=!RED!"
-        goto show_menu
-    )
-
-    echo.
-    echo Selected process: !KILL_PROG!
-    echo Do you want to save this process to auto-kill configuration?
-    echo  [Y] Yes, save and terminate process now
-    echo  [N] No, cancel operation
-    choice /c YN /n /m "Choice (Y/N): "
-    if errorlevel 2 (
-        set "status_msg=Kill configuration canceled by user."
-        set "status_color=!YELLOW!"
-        goto show_menu
-    )
-
-    (
-        echo KILL_PROG=!KILL_PROG!
-    ) >> "%CONFIG_FILE%"
-
-    set "proc=!KILL_PROG!"
-    if /i not "!proc:~-4!"==".exe" set "proc=!proc!.exe"
-    call :danger_beep
-    taskkill /f /im "!proc!" >nul 2>&1
-    for /f "delims=" %%T in ('powershell -NoProfile -Command "[Environment]::TickCount"') do set "LAST_ACTION_TICK=%%T"
-
-    set "status_msg=Process !proc! added to kill config and terminated."
-    set "status_color=!GREEN!"
+echo.
+echo Selected file: !SELECTED_PROG!
+echo Do you want to save this program to autostart configuration?
+echo  [Y] Yes, save configuration
+echo  [N] No, cancel operation
+choice /c YN /n /m "Choice (Y/N): "
+if errorlevel 2 (
+    set "status_msg=Start configuration canceled by user."
+    set "status_color=!YELLOW!"
     goto show_menu
 )
+
+(
+    echo START_PROG=!SELECTED_PROG!
+) >> "%CONFIG_FILE%"
+
+set "status_msg=Start program successfully added to configuration."
+set "status_color=!GREEN!"
+goto show_menu
+
+:func_kill_add
+echo.
+echo ================================================================
+echo  KILL CONFIGURATION METHOD
+echo ================================================================
+echo  [X] Explore
+echo  [Y] Manuell
+echo ================================================================
+choice /c XY /n /m "Select method ([X] Explore / [Y] Manuell): "
+set "KILL_PROG="
+if errorlevel 2 (
+    echo.
+    set /p "KILL_PROG=Enter process name (e.g. msedge.exe or discord.exe): "
+) else (
+    echo.
+    echo Opening file Explorer dialog...
+    for /f "delims=" %%F in ('powershell -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; $d=New-Object System.Windows.Forms.OpenFileDialog; $d.Filter='Applications (*.exe)|*.exe|All files (*.*)|*.*'; if($d.ShowDialog() -eq 'OK'){$d.SafeFileName}"') do (
+        set "KILL_PROG=%%F"
+    )
+)
+
+if not defined KILL_PROG (
+    set "status_msg=No kill process specified. Action canceled."
+    set "status_color=!YELLOW!"
+    goto show_menu
+)
+
+for %%I in ("!KILL_PROG!") do set "kill_chk=%%~nxI"
+if /i "!kill_chk!"=="%~nx0" (
+    set "status_msg=Error: You cannot target SkyPC Konsole!"
+    set "status_color=!RED!"
+    goto show_menu
+)
+
+echo.
+echo Selected process: !KILL_PROG!
+echo Do you want to save this process to auto-kill configuration?
+echo  [Y] Yes, save and terminate process now
+echo  [N] No, cancel operation
+choice /c YN /n /m "Choice (Y/N): "
+if errorlevel 2 (
+    set "status_msg=Kill configuration canceled by user."
+    set "status_color=!YELLOW!"
+    goto show_menu
+)
+
+(
+    echo KILL_PROG=!KILL_PROG!
+) >> "%CONFIG_FILE%"
+
+set "proc=!KILL_PROG!"
+if /i not "!proc:~-4!"==".exe" set "proc=!proc!.exe"
+call :danger_beep
+taskkill /f /im "!proc!" >nul 2>&1
+for /f "delims=" %%T in ('powershell -NoProfile -Command "[Environment]::TickCount"') do set "LAST_ACTION_TICK=%%T"
+
+set "status_msg=Process !proc! added to kill config and terminated."
+set "status_color=!GREEN!"
 goto show_menu
 
 rem ================================================================
@@ -549,7 +537,7 @@ set "status_color=!GREEN!"
 goto show_menu
 
 rem ================================================================
-rem  /viren-file  (file dialog + Defender scan)
+rem  /viren-file
 rem ================================================================
 :do_virenfile
 echo.
@@ -587,7 +575,7 @@ set "status_color=!GREEN!"
 goto show_menu
 
 rem ================================================================
-rem  /file-format  (.xyz = zip archive)
+rem  /file-format (.xyz)
 rem ================================================================
 :do_fileformat
 echo.
@@ -653,10 +641,9 @@ rem ================================================================
 echo.
 echo ================================================================
 echo Network and remote-access check
-echo Note: Results can be incomplete or incorrect. A running remote-access
-echo app does not prove that someone is connected.
+echo Note: Results can be incomplete or incorrect.
 echo ================================================================
-powershell -NoProfile -Command "try{$configs=@(Get-NetIPConfiguration -ErrorAction Stop | Where-Object {$_.NetAdapter.Status -eq 'Up'});Write-Host 'Active network adapters:';if($configs.Count -eq 0){Write-Host '  No active network adapters found.'}else{foreach($c in $configs){$profile=Get-NetConnectionProfile -InterfaceIndex $c.InterfaceIndex -ErrorAction SilentlyContinue | Select-Object -First 1;$network='Unknown';if($profile){$network=$profile.Name};$ipv4=@($c.IPv4Address | ForEach-Object {$_.IPAddress}) -join ', ';$ipv6=@($c.IPv6Address | ForEach-Object {$_.IPAddress}) -join ', ';$gw4=@($c.IPv4DefaultGateway | ForEach-Object {$_.NextHop}) -join ', ';$gw6=@($c.IPv6DefaultGateway | ForEach-Object {$_.NextHop}) -join ', ';$dns=@($c.DnsServer.ServerAddresses) -join ', ';$if4=Get-NetIPInterface -InterfaceIndex $c.InterfaceIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue | Select-Object -First 1;$if6=Get-NetIPInterface -InterfaceIndex $c.InterfaceIndex -AddressFamily IPv6 -ErrorAction SilentlyContinue | Select-Object -First 1;Write-Host '';Write-Host ('Adapter: '+$c.InterfaceAlias+' ('+$c.NetAdapter.Status+')');Write-Host ('  Network: '+$network);Write-Host ('  MAC: '+$c.NetAdapter.MacAddress);Write-Host ('  Link speed: '+$c.NetAdapter.LinkSpeed);Write-Host ('  IPv4 address: '+$ipv4);Write-Host ('  IPv4 gateway: '+$gw4);Write-Host ('  IPv4 DHCP: '+$if4.Dhcp);Write-Host ('  IPv6 address: '+$ipv6);Write-Host ('  IPv6 gateway: '+$gw6);Write-Host ('  IPv6 DHCP: '+$if6.Dhcp);Write-Host ('  DNS servers: '+$dns)}};Write-Host '';Write-Host 'Established TCP connections (remote endpoints):';$connections=@(Get-NetTCPConnection -State Established -ErrorAction Stop);if($connections.Count -eq 0){Write-Host '  No established TCP connections found.'}else{foreach($conn in $connections){$proc=Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue | Select-Object -First 1;$processName='Unknown';if($proc){$processName=$proc.ProcessName};Write-Host ('  '+$conn.LocalAddress+':'+$conn.LocalPort+' -> '+$conn.RemoteAddress+':'+$conn.RemotePort+'  Process: '+$processName)}};Write-Host '';Write-Host 'Known remote-access software processes:';$remoteNames=@('anydesk','teamviewer','teamviewer_service','rustdesk','quickassist','msra','mstsc','remoting_host','screenconnect.client','dwagent','splashtop','srmanager','bomgar-scc','logmein');$remoteApps=@(Get-Process -ErrorAction SilentlyContinue | Where-Object {$remoteNames -contains $_.ProcessName.ToLowerInvariant()} | Select-Object -ExpandProperty ProcessName -Unique);if($remoteApps.Count -eq 0){Write-Host '  No known remote-access software process detected.'}else{foreach($app in $remoteApps){Write-Host ('  WARNING: Running remote-access process: '+$app) -ForegroundColor Red}};exit 0}catch{Write-Host ('Network check failed: '+$_.Exception.Message);exit 1}"
+powershell -NoProfile -Command "try{$configs=@(Get-NetIPConfiguration -ErrorAction Stop | Where-Object {$_.NetAdapter.Status -eq 'Up'});Write-Host 'Active network adapters:';if($configs.Count -eq 0){Write-Host '  No active network adapters found.'}else{foreach($c in $configs){$profile=Get-NetConnectionProfile -InterfaceIndex $c.InterfaceIndex -ErrorAction SilentlyContinue | Select-Object -First 1;$network='Unknown';if($profile){$network=$profile.Name};$ipv4=@($c.IPv4Address | ForEach-Object {$_.IPAddress}) -join ', ';$ipv6=@($c.IPv6Address | ForEach-Object {$_.IPAddress}) -join ', ';$gw4=@($c.IPv4DefaultGateway | ForEach-Object {$_.NextHop}) -join ', ';$gw6=@($c.IPv6DefaultGateway | ForEach-Object {$_.NextHop}) -join ', ';$dns=@($c.DnsServer.ServerAddresses) -join ', ';Write-Host '';Write-Host ('Adapter: '+$c.InterfaceAlias+' ('+$c.NetAdapter.Status+')');Write-Host ('  Network: '+$network);Write-Host ('  IPv4 address: '+$ipv4);Write-Host ('  IPv4 gateway: '+$gw4);Write-Host ('  DNS servers: '+$dns)}};Write-Host '';Write-Host 'Established TCP connections:';$connections=@(Get-NetTCPConnection -State Established -ErrorAction Stop);if($connections.Count -eq 0){Write-Host '  No established TCP connections found.'}else{foreach($conn in $connections){$proc=Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue | Select-Object -First 1;$processName='Unknown';if($proc){$processName=$proc.ProcessName};Write-Host ('  '+$conn.LocalAddress+':'+$conn.LocalPort+' -> '+$conn.RemoteAddress+':'+$conn.RemotePort+'  Process: '+$processName)}};exit 0}catch{Write-Host ('Network check failed: '+$_.Exception.Message);exit 1}"
 set "rc=%errorlevel%"
 echo ================================================================
 echo Press any key to return to menu...
@@ -720,7 +707,6 @@ rem ================================================================
 echo.
 echo ================================================================
 echo This closes Chrome and Edge and deletes their cookies.
-echo You will be logged out of websites.
 echo   [X] Yes, delete
 echo   [Y] No, cancel
 echo ================================================================
@@ -754,7 +740,7 @@ if "!rc!"=="0" (
 goto show_menu
 
 rem ================================================================
-rem  /youtube speed [0.01 - 10]
+rem  /youtube speed
 rem ================================================================
 :do_youtube
 set "yt_sub="
@@ -771,28 +757,23 @@ if /i not "!yt_sub!"=="speed" (
 )
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$v=0.0;$ok=[double]::TryParse(([string]$env:yt_val).Trim().Replace(',','.'),[Globalization.NumberStyles]::Float,[Globalization.CultureInfo]::InvariantCulture,[ref]$v);if(-not $ok -or [double]::IsNaN($v) -or $v -lt 0.01 -or $v -gt 10){exit 2};$s=$v.ToString([Globalization.CultureInfo]::InvariantCulture);$js='(()=>{const s='+$s+';try{localStorage.setItem(''yt-player-playback-rate'',JSON.stringify({data:String(s),creation:Date.now(),expiration:Date.now()+2592000000}))}catch(e){};const v=document.querySelector(''video'');if(v){v.playbackRate=s};console.log(''YouTube speed set to ''+s)})()';Set-Clipboard -Value $js;Write-Host ('Speed '+$s+' - script copied to clipboard.');$hasWindow = Get-Process -Name chrome, msedge, firefox -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 }; if (-not $hasWindow) { Start-Process 'https://www.youtube.com' };exit 0"
 if errorlevel 1 (
-    set "status_msg=Invalid speed. Use a number from 0.01 to 10, e.g. /youtube speed 1.5"
+    set "status_msg=Invalid speed. Use a number from 0.01 to 10"
     set "status_color=!RED!"
     goto show_menu
 )
 echo.
 echo ================================================================
-echo  Script copied to clipboard!
-echo  1. Open your YouTube tab in your browser.
-echo  2. Press F12 and select the "Console" tab.
-echo  3. Press Ctrl+V and Enter. (First time in Chrome/Edge: type
-echo     "allow pasting" and press Enter before pasting.)
-echo  The speed applies immediately.
+echo  Script copied to clipboard! Paste in browser Console (F12).
 echo ================================================================
 echo.
 echo Press any key to return to menu...
 pause >nul
-set "status_msg=YouTube speed script for !yt_val!x copied to clipboard."
+set "status_msg=YouTube speed script copied to clipboard."
 set "status_color=!GREEN!"
 goto show_menu
 
 rem ================================================================
-rem  /youtube design [default / dark / white]
+rem  /youtube design
 rem ================================================================
 :do_ytdesign
 set "yt_th="
@@ -810,28 +791,23 @@ if not defined yt_t2 (
 )
 powershell -NoProfile -ExecutionPolicy Bypass -Command "$js='(()=>{const T=''@@T@@'';const m=new Map();(document.cookie.split(''; '').find(c=>c.startsWith(''PREF=''))||''PREF='').slice(5).split(''&'').filter(Boolean).forEach(p=>{const i=p.indexOf(''='');m.set(p.slice(0,i),p.slice(i+1))});let f=parseInt(m.get(''f6'')||''0'',16)||0;f=(f&~(0x400|0x80000))>>>0;if(T===''dark''){f=(f|0x400)>>>0};if(T===''white''){f=(f|0x80000)>>>0};if(f){m.set(''f6'',f.toString(16))}else{m.delete(''f6'')};document.cookie=''PREF=''+[...m].map(([k,v])=>k+''=''+v).join(''&'')+'';domain=.youtube.com;path=/;max-age=31536000;secure'';location.reload()})()'.Replace('@@T@@',$env:yt_t2);Set-Clipboard -Value $js;Write-Host 'Script copied to clipboard.';$hasWindow = Get-Process -Name chrome, msedge, firefox -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 }; if (-not $hasWindow) { Start-Process 'https://www.youtube.com/' };exit 0"
 if errorlevel 1 (
-    set "status_msg=Could not copy the script to the clipboard."
+    set "status_msg=Could not copy the script."
     set "status_color=!RED!"
     goto show_menu
 )
 echo.
 echo ================================================================
 echo  Theme: !yt_t2! (Script copied to clipboard!)
-echo  1. Open your YouTube tab in your browser.
-echo  2. Press F12 and select the "Console" tab.
-echo  3. Press Ctrl+V and Enter. (First time in Chrome/Edge: type
-echo     "allow pasting" and press Enter before pasting.)
-echo  The page reloads with the new theme.
 echo ================================================================
 echo.
 echo Press any key to return to menu...
 pause >nul
-set "status_msg=YouTube theme script (!yt_t2!) copied to clipboard."
+set "status_msg=YouTube theme script copied."
 set "status_color=!GREEN!"
 goto show_menu
 
 rem ================================================================
-rem  Helper: find the real Desktop folder (also works with OneDrive)
+rem  Helper: Desktop pfad ermitteln
 rem ================================================================
 :get_desktop
 if defined DESKTOP exit /b 0
@@ -840,13 +816,12 @@ if not defined DESKTOP set "DESKTOP=%USERPROFILE%\Desktop"
 exit /b 0
 
 rem ================================================================
-rem  Warning tone for destructive actions
+rem  Warning tone
 rem ================================================================
 :danger_beep
 setlocal
 set "BEEP_DURATION=%~1"
 if not defined BEEP_DURATION set "BEEP_DURATION=1000"
-powershell -NoProfile -Command "try{[Console]::Beep(1200,[int]$env:BEEP_DURATION)}catch{Write-Host ('Warning: could not play alert tone: '+$_.Exception.Message);exit 1}"
-if errorlevel 1 echo Warning: could not play alert tone.
+powershell -NoProfile -Command "try{[Console]::Beep(1200,[int]$env:BEEP_DURATION)}catch{exit 1}"
 endlocal
 exit /b 0
