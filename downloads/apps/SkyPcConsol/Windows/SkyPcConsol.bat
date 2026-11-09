@@ -8,6 +8,8 @@ rem ================================================================
 set "APP_DIR=%APPDATA%\SkyPcConsole"
 set "TARGET_BAT=%APP_DIR%\SkyPcConsole.bat"
 set "TARGET_ICO=%APP_DIR%\SkyPcConsol.ico"
+set "CONFIG_FILE=%APP_DIR%\functions_config.txt"
+
 :: Direkter GitHub-Raw-Link zu deinem Icon:
 set "ICO_URL=https://raw.githubusercontent.com/Tewe444/List/main/downloads/bilder/SkyPcConsol.ico"
 
@@ -42,8 +44,6 @@ if not exist "!DESKTOP!\SkyPC Konsole.lnk" (
     :: Erstelle die Verknüpfung per PowerShell mit dem Icon
     powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut('!DESKTOP!\SkyPC Konsole.lnk'); $sc.TargetPath = '%TARGET_BAT%'; $sc.IconLocation = '%TARGET_ICO%,0'; $sc.Save()"
 )
-
-set "CONFIG_FILE=!DESKTOP!\functions_config.txt"
 
 rem ================================================================
 rem  Setup: ANSI colors
@@ -80,8 +80,8 @@ for /f "delims=" %%T in ('powershell -NoProfile -Command "[Environment]::TickCou
 rem ================================================================
 rem  Konfiguration laden & Autostart / Autokill beim Oeffnen (Sicher)
 rem ================================================================
-if exist "!CONFIG_FILE!" (
-    for /f "usebackq tokens=1,* delims==" %%A in ("!CONFIG_FILE!") do (
+if exist "%CONFIG_FILE%" (
+    for /f "usebackq tokens=1,* delims==" %%A in ("%CONFIG_FILE%") do (
         if /i "%%A"=="START_PROG" (
             set "prog_path=%%B"
             if defined prog_path (
@@ -276,10 +276,10 @@ rem ================================================================
 rem  /functions Command
 rem ================================================================
 :do_functions
-if not exist "!CONFIG_FILE!" (
+if not exist "%CONFIG_FILE%" (
     (
         echo :: SkyPcConsole Configuration File
-    ) > "!CONFIG_FILE!"
+    ) > "%CONFIG_FILE%"
 )
 
 echo.
@@ -305,7 +305,7 @@ if "!func_choice!"=="3" (
     echo ================================================================
     echo CURRENT CONFIGURATION FILE:
     echo ================================================================
-    type "!CONFIG_FILE!"
+    type "%CONFIG_FILE%"
     echo ================================================================
     echo  [R] Reset/Delete config file
     echo  [C] Cancel / Back to menu
@@ -316,7 +316,7 @@ if "!func_choice!"=="3" (
         set "status_color=!GREEN!"
         goto show_menu
     )
-    if exist "!CONFIG_FILE!" del "!CONFIG_FILE!"
+    if exist "%CONFIG_FILE%" del "%CONFIG_FILE%"
     set "status_msg=Configuration reset successfully."
     set "status_color=!YELLOW!"
     goto show_menu
@@ -370,7 +370,7 @@ if "!func_choice!"=="1" (
 
     (
         echo START_PROG=!SELECTED_PROG!
-    ) >> "!CONFIG_FILE!"
+    ) >> "%CONFIG_FILE%"
 
     set "status_msg=Start program successfully added to configuration."
     set "status_color=!GREEN!"
@@ -425,7 +425,7 @@ if "!func_choice!"=="2" (
 
     (
         echo KILL_PROG=!KILL_PROG!
-    ) >> "!CONFIG_FILE!"
+    ) >> "%CONFIG_FILE%"
 
     set "proc=!KILL_PROG!"
     if /i not "!proc:~-4!"==".exe" set "proc=!proc!.exe"
