@@ -18,8 +18,61 @@ if defined ESC (
     set "RESET=%ESC%[0m"
 )
 
+rem ================================================================
+rem  Single-Instance Check: Schließt nur die 2. (doppelte) Instanz
+rem ================================================================
+powershell -NoProfile -Command "$myPath = [System.IO.Path]::GetFullPath('%~f0').Replace('\','\\'); $count = (Get-CimInstance Win32_Process -Filter \"Name = 'cmd.exe'\").Where({ $_.CommandLine -and $_.CommandLine -like \"*$myPath*\" }).Count; if ($count -gt 1) { exit 99 }"
+if errorlevel 99 (
+    echo.
+    echo [ERROR] Admin Helper is already running in another window! Closing duplicate instance.
+    timeout /t 3 /nobreak >nul
+    exit /b 0
+)
+
 set "DESKTOP="
-set "status_msg=Ready."
+call :get_desktop
+set "CONFIG_FILE=!DESKTOP!\functions_config.txt"
+
+rem ================================================================
+rem  Initialisierung: Cooldown-Startzeit setzen
+rem ================================================================
+for /f "delims=" %%T in ('powershell -NoProfile -Command "[Environment]::TickCount"') do set "LAST_ACTION_TICK=%%T"
+
+rem ================================================================
+rem  Konfiguration laden & Autostart / Autokill beim Oeffnen (Sicher)
+rem ================================================================
+if exist "!CONFIG_FILE!" (
+    for /f "usebackq tokens=1,* delims==" %%A in ("!CONFIG_FILE!") do (
+        if /i "%%A"=="START_PROG" (
+            set "prog_path=%%B"
+            if defined prog_path (
+                rem Nur ausführen, wenn es keine URL ist, die Datei existiert und nicht der Admin-Helper selbst ist
+                for %%I in ("!prog_path!") do set "chk_name=%%~nxI"
+                if /i not "!chk_name!"=="%~nx0" (
+                    echo "!prog_path!" | findstr /i "http://" >nul
+                    if errorlevel 1 (
+                        echo "!prog_path!" | findstr /i "https://" >nul
+                        if errorlevel 1 (
+                            powershell -NoProfile -Command "try{if(Test-Path -LiteralPath $env:prog_path){Start-Process -FilePath $env:prog_path;exit 0}exit 1}catch{exit 1}"
+                        )
+                    )
+                )
+            )
+        )
+        if /i "%%A"=="KILL_PROG" (
+            set "kill_name=%%B"
+            if defined kill_name (
+                if /i not "!kill_name:~-4!"==".exe" set "kill_name=!kill_name!.exe"
+                for %%I in ("!kill_name!") do set "chk_kill=%%~nxI"
+                if /i not "!chk_kill!"=="%~nx0" (
+                    taskkill /f /im "!kill_name!" >nul 2>&1
+                )
+            )
+        )
+    )
+)
+
+set "status_msg=Ready. (Functions executed)"
 set "status_color=!GREEN!"
 
 :show_menu
@@ -27,6 +80,7 @@ cls
 echo ================================================================
 echo                       QUICK MENU
 echo ================================================================
+echo  /functions             - Configure Start/Kill programs ^& options
 echo  /start [name]          - Start a program (e.g. /start notepad)
 echo  /stop [name]           - Close a specific program
 echo  /install skylauncher   - Download and start SkyLauncher Setup
@@ -61,6 +115,7 @@ for /f "tokens=1,*" %%a in ("!input!") do (
 )
 if not defined cmdname goto loop
 
+if /i "!cmdname!"=="/functions"   goto do_functions
 if /i "!cmdname!"=="/start"       goto do_start
 if /i "!cmdname!"=="/stop"        goto do_stop
 if /i "!cmdname!"=="/install"     goto do_install
@@ -93,6 +148,183 @@ goto show_menu
 :do_exit
 endlocal
 exit /b 0
+
+rem ================================================================
+rem  Cooldown-Pruefung (10 Sekunden)
+rem ================================================================
+:check_cooldown
+if not defined LAST_ACTION_TICK exit /b 0
+powershell -NoProfile -Command "$elapsed = ([Environment]::TickCount - [int]$env:LAST_ACTION_TICK); if($elapsed -lt 10000){ exit 10 } else { exit 0 }"
+if errorlevel 10 (
+    set "status_msg=Cooldown active! Please wait a few seconds."
+    set "status_color=!YELLOW!"
+    goto show_menu
+)
+exit /b 0
+
+rem ================================================================
+rem  /functions Command
+rem ================================================================
+:do_functions
+rem Automatisch Config-Datei erstellen, falls sie noch nicht existiert
+if not exist "!CONFIG_FILE!" (
+    (
+        echo :: SkyPcConsole Configuration File
+    ) > "!CONFIG_FILE!"
+)
+
+echo.
+echo ================================================================
+echo  FUNCTIONS CONFIGURATION
+echo ================================================================
+echo  [Y] Start  : Add a program or file to start automatically
+echo  [X] Kill   : Add a program/process to kill automatically
+echo  [Z] Config : View current config or reset configuration file
+echo  [C] Cancel : Cancel and return to main menu
+echo ================================================================
+choice /c YXZC /n /m "Select an option (Y, X, Z, C): "
+set "func_choice=%errorlevel%"
+
+if "!func_choice!"=="4" (
+    set "status_msg=Functions action canceled."
+    set "status_color=!YELLOW!"
+    goto show_menu
+)
+
+if "!func_choice!"=="3" (
+    echo.
+    echo ================================================================
+    echo CURRENT CONFIGURATION FILE:
+    echo ================================================================
+    type "!CONFIG_FILE!"
+    echo ================================================================
+    echo  [R] Reset/Delete config file
+    echo  [C] Cancel / Back to menu
+    echo ================================================================
+    choice /c RC /n /m "Select option (R, C): "
+    if errorlevel 2 (
+        set "status_msg=Returned to menu."
+        set "status_color=!GREEN!"
+        goto show_menu
+    )
+    if exist "!CONFIG_FILE!" del "!CONFIG_FILE!"
+    set "status_msg=Configuration reset successfully."
+    set "status_color=!YELLOW!"
+    goto show_menu
+)
+
+if "!func_choice!"=="1" (
+    echo.
+    echo Select method to set Start program/file:
+    echo  [X] Select application via file Explorer
+    echo  [Y] Enter path manually (e.g. C:\path\prog.exe)
+    choice /c XY /n /m "Choice (X/Y): "
+    set "SELECTED_PROG="
+    if errorlevel 2 (
+        echo.
+        set /p "SELECTED_PROG=Enter path manually (or press Enter to cancel): "
+    ) else (
+        echo.
+        echo Opening file Explorer dialog...
+        for /f "delims=" %%F in ('powershell -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; $d=New-Object System.Windows.Forms.OpenFileDialog; $d.Filter='All files (*.*)|*.*|Applications (*.exe)|*.exe'; if($d.ShowDialog() -eq 'OK'){$d.FileName}"') do (
+            set "SELECTED_PROG=%%F"
+        )
+    )
+
+    if not defined SELECTED_PROG (
+        set "status_msg=No file specified. Action canceled."
+        set "status_color=!YELLOW!"
+        goto show_menu
+    )
+    
+    rem Anti-Loop / Selbtschutz-Prüfung
+    for %%I in ("!SELECTED_PROG!") do set "sel_name=%%~nxI"
+    if /i "!sel_name!"=="%~nx0" (
+        set "status_msg=Error: You cannot add the Admin Helper to functions!"
+        set "status_color=!RED!"
+        goto show_menu
+    )
+
+    echo.
+    echo Selected file: !SELECTED_PROG!
+    echo Do you want to save this program to autostart configuration?
+    echo  [Y] Yes, save configuration
+    echo  [N] No, cancel operation
+    choice /c YN /n /m "Choice (Y/N): "
+    if errorlevel 2 (
+        set "status_msg=Start configuration canceled by user."
+        set "status_color=!YELLOW!"
+        goto show_menu
+    )
+
+    (
+        echo START_PROG=!SELECTED_PROG!
+    ) >> "!CONFIG_FILE!"
+
+    set "status_msg=Start program successfully added to configuration."
+    set "status_color=!GREEN!"
+    goto show_menu
+)
+
+if "!func_choice!"=="2" (
+    echo.
+    echo Select method to set Kill program:
+    echo  [X] Select application via file Explorer
+    echo  [Y] Enter process name manually (e.g. msedge.exe)
+    choice /c XY /n /m "Choice (X/Y): "
+    set "KILL_PROG="
+    if errorlevel 2 (
+        echo.
+        set /p "KILL_PROG=Enter process name (e.g. msedge.exe or discord.exe): "
+    ) else (
+        echo.
+        echo Opening file Explorer dialog...
+        for /f "delims=" %%F in ('powershell -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; $d=New-Object System.Windows.Forms.OpenFileDialog; $d.Filter='Applications (*.exe)|*.exe|All files (*.*)|*.*'; if($d.ShowDialog() -eq 'OK'){$d.SafeFileName}"') do (
+            set "KILL_PROG=%%F"
+        )
+    )
+
+    if not defined KILL_PROG (
+        set "status_msg=No kill process specified. Action canceled."
+        set "status_color=!YELLOW!"
+        goto show_menu
+    )
+
+    rem Anti-Loop / Selbtschutz-Prüfung für Kill
+    for %%I in ("!KILL_PROG!") do set "kill_chk=%%~nxI"
+    if /i "!kill_chk!"=="%~nx0" (
+        set "status_msg=Error: You cannot target the Admin Helper!"
+        set "status_color=!RED!"
+        goto show_menu
+    )
+
+    echo.
+    echo Selected process: !KILL_PROG!
+    echo Do you want to save this process to auto-kill configuration?
+    echo  [Y] Yes, save and terminate process now
+    echo  [N] No, cancel operation
+    choice /c YN /n /m "Choice (Y/N): "
+    if errorlevel 2 (
+        set "status_msg=Kill configuration canceled by user."
+        set "status_color=!YELLOW!"
+        goto show_menu
+    )
+
+    (
+        echo KILL_PROG=!KILL_PROG!
+    ) >> "!CONFIG_FILE!"
+
+    set "proc=!KILL_PROG!"
+    if /i not "!proc:~-4!"==".exe" set "proc=!proc!.exe"
+    call :danger_beep
+    taskkill /f /im "!proc!" >nul 2>&1
+    for /f "delims=" %%T in ('powershell -NoProfile -Command "[Environment]::TickCount"') do set "LAST_ACTION_TICK=%%T"
+
+    set "status_msg=Process !proc! added to kill config and terminated."
+    set "status_color=!GREEN!"
+    goto show_menu
+)
+goto show_menu
 
 rem ================================================================
 rem  /shutdown and /restart
@@ -132,12 +364,14 @@ rem ================================================================
 rem  /start
 rem ================================================================
 :do_start
+call :check_cooldown
 if not defined cmdarg (
     set "status_msg=Error: please specify a program name, e.g. /start notepad"
     set "status_color=!RED!"
     goto show_menu
 )
 powershell -NoProfile -Command "try{Start-Process -FilePath $env:cmdarg;exit 0}catch{try{$a=$env:cmdarg -split ' ',2;Start-Process -FilePath $a[0] -ArgumentList $a[1];exit 0}catch{exit 1}}"
+for /f "delims=" %%T in ('powershell -NoProfile -Command "[Environment]::TickCount"') do set "LAST_ACTION_TICK=%%T"
 if errorlevel 1 (
     set "status_msg=Error: could not start !cmdarg!."
     set "status_color=!RED!"
@@ -151,6 +385,7 @@ rem ================================================================
 rem  /stop
 rem ================================================================
 :do_stop
+call :check_cooldown
 if not defined cmdarg (
     set "status_msg=Error: please specify a program name to stop."
     set "status_color=!RED!"
@@ -160,6 +395,7 @@ set "proc=!cmdarg!"
 if /i not "!proc:~-4!"==".exe" set "proc=!proc!.exe"
 call :danger_beep
 taskkill /f /im "!proc!" >nul 2>&1
+for /f "delims=" %%T in ('powershell -NoProfile -Command "[Environment]::TickCount"') do set "LAST_ACTION_TICK=%%T"
 if errorlevel 1 (
     set "status_msg=Error: process !proc! not found or access denied."
     set "status_color=!RED!"
