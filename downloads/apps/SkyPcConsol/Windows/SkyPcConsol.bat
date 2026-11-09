@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
-title Admin Helper
+title SkyPC Konsole
 
 rem ================================================================
 rem  First-Run Setup: AppData, Datei kopieren & Desktop-Verknüpfung
@@ -25,14 +25,22 @@ set "DESKTOP="
 for /f "delims=" %%D in ('powershell -NoProfile -Command "[Environment]::GetFolderPath([Environment+SpecialFolder]::Desktop)"') do set "DESKTOP=%%D"
 if not defined DESKTOP set "DESKTOP=%USERPROFILE%\Desktop"
 
-:: Verknüpfung auf dem Desktop erstellen, falls noch nicht vorhanden
-if not exist "!DESKTOP!\Admin Helper.lnk" (
+:: Alte Versionen vom Desktop loeschen (Verknuepfungen und alte Batch-Dateien)
+if exist "!DESKTOP!\Admin Helper.lnk" del /f /q "!DESKTOP!\Admin Helper.lnk" >nul 2>&1
+if exist "!DESKTOP!\SkyPC_Konsole.lnk" del /f /q "!DESKTOP!\SkyPC_Konsole.lnk" >nul 2>&1
+if exist "!DESKTOP!\SkyPC_Konsole.bat" del /f /q "!DESKTOP!\SkyPC_Konsole.bat" >nul 2>&1
+if exist "!DESKTOP!\SkyPcConsole.bat" (
+    if /i not "%~f0"=="!DESKTOP!\SkyPcConsole.bat" del /f /q "!DESKTOP!\SkyPcConsole.bat" >nul 2>&1
+)
+
+:: Neue Verknüpfung "SkyPC Konsole" auf dem Desktop erstellen
+if not exist "!DESKTOP!\SkyPC Konsole.lnk" (
     :: Lade das Icon herunter, falls es noch nicht in AppData liegt
     if not exist "%TARGET_ICO%" (
         powershell -NoProfile -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%ICO_URL%' -OutFile '%TARGET_ICO%' -ErrorAction Stop } catch {}"
     )
     :: Erstelle die Verknüpfung per PowerShell mit dem Icon
-    powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut('!DESKTOP!\Admin Helper.lnk'); $sc.TargetPath = '%TARGET_BAT%'; $sc.IconLocation = '%TARGET_ICO%,0'; $sc.Save()"
+    powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut('!DESKTOP!\SkyPC Konsole.lnk'); $sc.TargetPath = '%TARGET_BAT%'; $sc.IconLocation = '%TARGET_ICO%,0'; $sc.Save()"
 )
 
 set "CONFIG_FILE=!DESKTOP!\functions_config.txt"
@@ -59,7 +67,7 @@ rem ================================================================
 powershell -NoProfile -Command "$myPath = [System.IO.Path]::GetFullPath('%~f0').Replace('\','\\'); $count = (Get-CimInstance Win32_Process -Filter \"Name = 'cmd.exe'\").Where({ $_.CommandLine -and $_.CommandLine -like \"*$myPath*\" }).Count; if ($count -gt 1) { exit 99 }"
 if errorlevel 99 (
     echo.
-    echo [ERROR] Admin Helper is already running in another window! Closing duplicate instance.
+    echo [ERROR] SkyPC Konsole is already running in another window! Closing duplicate instance.
     timeout /t 3 /nobreak >nul
     exit /b 0
 )
@@ -343,7 +351,7 @@ if "!func_choice!"=="1" (
     
     for %%I in ("!SELECTED_PROG!") do set "sel_name=%%~nxI"
     if /i "!sel_name!"=="%~nx0" (
-        set "status_msg=Error: You cannot add the Admin Helper to functions!"
+        set "status_msg=Error: You cannot add SkyPC Konsole to functions!"
         set "status_color=!RED!"
         goto show_menu
     )
@@ -398,7 +406,7 @@ if "!func_choice!"=="2" (
 
     for %%I in ("!KILL_PROG!") do set "kill_chk=%%~nxI"
     if /i "!kill_chk!"=="%~nx0" (
-        set "status_msg=Error: You cannot target the Admin Helper!"
+        set "status_msg=Error: You cannot target SkyPC Konsole!"
         set "status_color=!RED!"
         goto show_menu
     )
