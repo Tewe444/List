@@ -3,6 +3,41 @@ setlocal EnableExtensions EnableDelayedExpansion
 title Admin Helper
 
 rem ================================================================
+rem  First-Run Setup: AppData, Datei kopieren & Desktop-Verknüpfung
+rem ================================================================
+set "APP_DIR=%APPDATA%\SkyPcConsole"
+set "TARGET_BAT=%APP_DIR%\SkyPcConsole.bat"
+set "TARGET_ICO=%APP_DIR%\SkyPcConsol.ico"
+:: Direkter GitHub-Raw-Link zu deinem Icon:
+set "ICO_URL=https://raw.githubusercontent.com/Tewe444/List/main/downloads/bilder/SkyPcConsol.ico"
+
+if not exist "%APP_DIR%" (
+    mkdir "%APP_DIR%" >nul 2>&1
+)
+
+:: Kopiere das Skript in den AppData-Ordner, falls es dort noch nicht läuft
+if /i not "%~f0"=="%TARGET_BAT%" (
+    copy /y "%~f0" "%TARGET_BAT%" >nul 2>&1
+)
+
+:: Desktop-Pfad ermitteln
+set "DESKTOP="
+for /f "delims=" %%D in ('powershell -NoProfile -Command "[Environment]::GetFolderPath([Environment+SpecialFolder]::Desktop)"') do set "DESKTOP=%%D"
+if not defined DESKTOP set "DESKTOP=%USERPROFILE%\Desktop"
+
+:: Verknüpfung auf dem Desktop erstellen, falls noch nicht vorhanden
+if not exist "!DESKTOP!\Admin Helper.lnk" (
+    :: Lade das Icon herunter, falls es noch nicht in AppData liegt
+    if not exist "%TARGET_ICO%" (
+        powershell -NoProfile -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '%ICO_URL%' -OutFile '%TARGET_ICO%' -ErrorAction Stop } catch {}"
+    )
+    :: Erstelle die Verknüpfung per PowerShell mit dem Icon
+    powershell -NoProfile -Command "$ws = New-Object -ComObject WScript.Shell; $sc = $ws.CreateShortcut('!DESKTOP!\Admin Helper.lnk'); $sc.TargetPath = '%TARGET_BAT%'; $sc.IconLocation = '%TARGET_ICO%,0'; $sc.Save()"
+)
+
+set "CONFIG_FILE=!DESKTOP!\functions_config.txt"
+
+rem ================================================================
 rem  Setup: ANSI colors
 rem ================================================================
 set "ESC="
@@ -29,10 +64,6 @@ if errorlevel 99 (
     exit /b 0
 )
 
-set "DESKTOP="
-call :get_desktop
-set "CONFIG_FILE=!DESKTOP!\functions_config.txt"
-
 rem ================================================================
 rem  Initialisierung: Cooldown-Startzeit setzen
 rem ================================================================
@@ -46,7 +77,6 @@ if exist "!CONFIG_FILE!" (
         if /i "%%A"=="START_PROG" (
             set "prog_path=%%B"
             if defined prog_path (
-                rem Nur ausführen, wenn es keine URL ist, die Datei existiert und nicht der Admin-Helper selbst ist
                 for %%I in ("!prog_path!") do set "chk_name=%%~nxI"
                 if /i not "!chk_name!"=="%~nx0" (
                     echo "!prog_path!" | findstr /i "http://" >nul
@@ -72,7 +102,7 @@ if exist "!CONFIG_FILE!" (
     )
 )
 
-set "status_msg=Ready. (Functions executed)"
+set "status_msg=Ready. (Setup completed & Functions executed)"
 set "status_color=!GREEN!"
 
 :show_menu
@@ -88,11 +118,14 @@ echo  /viren-file            - Select a file via dialog ^& check with Defender
 echo  /virus-check           - Open Windows Defender settings
 echo  /file-format           - Encode or decode files (.xyz)
 echo  /ping [target]         - Ping an IP address or domain (default: 8.8.8.8)
+echo  /speedtest             - Measure internet speed (Download ^& Upload)
 echo  /network               - Show network, active connections and remote-access apps
 echo  /close-edge            - Force close all Microsoft Edge processes
 echo  /create [path]         - Create folders/files on Desktop (e.g. /create a/b/file.txt)
 echo  /kill-cookie           - Delete Chrome/Edge cookies
-echo  /youtube speed [X]     - YouTube playback speed, x = 0.25 to 5
+echo  /sysinfo               - Show system information (CPU, RAM, Uptime, Drive)
+echo  /clean-temp            - Clear temporary files (%temp% and Windows Temp)
+echo  /youtube speed [X]     - YouTube playback speed, x = 0.01 to 10
 echo  /youtube design [x]    - YouTube theme: default, dark or white
 echo  /shutdown              - Shut down the PC (10-second countdown; any key cancels)
 echo  /restart               - Restart the PC (10-second countdown; any key cancels)
@@ -124,10 +157,13 @@ if /i "!cmdname!"=="/virus-check" goto do_viruscheck
 if /i "!cmdname!"=="/file-format" goto do_fileformat
 if /i "!cmdname!"=="/fileformat"  goto do_fileformat
 if /i "!cmdname!"=="/ping"        goto do_ping
+if /i "!cmdname!"=="/speedtest"   goto do_speedtest
 if /i "!cmdname!"=="/network"     goto do_network
 if /i "!cmdname!"=="/close-edge"  goto do_closeedge
 if /i "!cmdname!"=="/create"      goto do_create
 if /i "!cmdname!"=="/kill-cookie" goto do_killcookie
+if /i "!cmdname!"=="/sysinfo"     goto do_sysinfo
+if /i "!cmdname!"=="/clean-temp"  goto do_cleantemp
 if /i "!cmdname!"=="/youtube"     goto do_youtube
 if /i "!cmdname!"=="/shutdown" (
     set "POWER_ACTION=/s"
@@ -163,10 +199,75 @@ if errorlevel 10 (
 exit /b 0
 
 rem ================================================================
+rem  /speedtest Command (Download & Upload)
+rem ================================================================
+:do_speedtest
+echo.
+echo ================================================================
+echo  INTERNET SPEEDTEST (Download ^& Upload)
+echo ================================================================
+echo Please wait a few seconds...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; $wc = New-Object System.Net.WebClient; $wc.Headers.Add('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'); $sw = [Diagnostics.Stopwatch]::StartNew(); $data = $wc.DownloadData('https://speed.cloudflare.com/__down?bytes=25000000'); $sw.Stop(); $dlSec = if($sw.Elapsed.TotalSeconds -gt 0){$sw.Elapsed.TotalSeconds}else{0.1}; $dlMbps = [math]::Round((($data.Length * 8) / $dlSec) / 1000000, 2); Write-Host ('  - Download : ' + $dlMbps + ' Mbps'); $upData = New-Object byte[] (5000000); (New-Object Random).NextBytes($upData); $sw = [Diagnostics.Stopwatch]::StartNew(); [void]$wc.UploadData('https://speed.cloudflare.com/__up', $upData); $sw.Stop(); $upSec = if($sw.Elapsed.TotalSeconds -gt 0){$sw.Elapsed.TotalSeconds}else{0.1}; $upMbps = [math]::Round((($upData.Length * 8) / $upSec) / 1000000, 2); Write-Host ('  - Upload   : ' + $upMbps + ' Mbps'); exit 0 } catch { Write-Host ('Error: ' + $_.Exception.Message); exit 1 }"
+set "rc=%errorlevel%"
+echo ================================================================
+echo Speedtest finished. Press any key to return to menu...
+echo ================================================================
+pause >nul
+if "!rc!"=="0" (
+    set "status_msg=Speedtest completed successfully (DL & UL)."
+    set "status_color=!GREEN!"
+) else (
+    set "status_msg=Speedtest failed or timed out."
+    set "status_color=!RED!"
+)
+goto show_menu
+
+rem ================================================================
+rem  /sysinfo Command
+rem ================================================================
+:do_sysinfo
+echo.
+echo ================================================================
+echo  SYSTEM INFORMATION
+echo ================================================================
+powershell -NoProfile -Command "$os = Get-CimInstance Win32_OperatingSystem; $cpu = Get-CimInstance Win32_Processor | Select-Object -First 1; $totalMemory = [math]::Round($os.TotalVisibleMemorySize / 1MB, 2); $freeMemory = [math]::Round($os.FreePhysicalMemory / 1MB, 2); $usedMemory = [math]::Round($totalMemory - $freeMemory, 2); $uptime = (Get-Date) - $os.LastBootUpTime; $drive = Get-PSDrive -Name C; $freeDisk = [math]::Round($drive.Free / 1GB, 2); $usedDisk = [math]::Round($drive.Used / 1GB, 2); Write-Host ('  CPU: ' + $cpu.Name); Write-Host ('  Uptime: ' + $uptime.Days + ' days, ' + $uptime.Hours + ' hours, ' + $uptime.Minutes + ' minutes'); Write-Host ('  RAM: ' + $usedMemory + ' GB used / ' + $totalMemory + ' GB total (' + $freeMemory + ' GB free)'); Write-Host ('  C: Drive: ' + $freeDisk + ' GB free / ' + ($freeDisk + $usedDisk) + ' GB total')"
+set "rc=%errorlevel%"
+echo ================================================================
+echo Press any key to return to menu...
+echo ================================================================
+pause >nul
+if "!rc!"=="0" (
+    set "status_msg=System information displayed."
+    set "status_color=!GREEN!"
+) else (
+    set "status_msg=Could not read system information."
+    set "status_color=!RED!"
+)
+goto show_menu
+
+rem ================================================================
+rem  /clean-temp Command
+rem ================================================================
+:do_cleantemp
+echo.
+echo ================================================================
+echo  CLEANING TEMPORARY FILES
+echo ================================================================
+call :danger_beep 1500
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$count = 0; $paths = @($env:TEMP, 'C:\Windows\Temp'); foreach($p in $paths) { if(Test-Path $p) { Get-ChildItem -Path $p -Recurse -Force -ErrorAction SilentlyContinue | ForEach-Object { try { Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction Stop; $count++ } catch {} } } }; Write-Host ('Successfully deleted ' + $count + ' temporary files/items.')"
+set "rc=%errorlevel%"
+echo ================================================================
+echo Cleanup finished. Press any key to return to menu...
+echo ================================================================
+pause >nul
+set "status_msg=Temporary files cleaned successfully."
+set "status_color=!GREEN!"
+goto show_menu
+
+rem ================================================================
 rem  /functions Command
 rem ================================================================
 :do_functions
-rem Automatisch Config-Datei erstellen, falls sie noch nicht existiert
 if not exist "!CONFIG_FILE!" (
     (
         echo :: SkyPcConsole Configuration File
@@ -215,10 +316,13 @@ if "!func_choice!"=="3" (
 
 if "!func_choice!"=="1" (
     echo.
-    echo Select method to set Start program/file:
-    echo  [X] Select application via file Explorer
-    echo  [Y] Enter path manually (e.g. C:\path\prog.exe)
-    choice /c XY /n /m "Choice (X/Y): "
+    echo ================================================================
+    echo  START CONFIGURATION METHOD
+    echo ================================================================
+    echo  [X] Explore
+    echo  [Y] Manuell
+    echo ================================================================
+    choice /c XY /n /m "Select method ([X] Explore / [Y] Manuell): "
     set "SELECTED_PROG="
     if errorlevel 2 (
         echo.
@@ -237,7 +341,6 @@ if "!func_choice!"=="1" (
         goto show_menu
     )
     
-    rem Anti-Loop / Selbtschutz-Prüfung
     for %%I in ("!SELECTED_PROG!") do set "sel_name=%%~nxI"
     if /i "!sel_name!"=="%~nx0" (
         set "status_msg=Error: You cannot add the Admin Helper to functions!"
@@ -268,10 +371,13 @@ if "!func_choice!"=="1" (
 
 if "!func_choice!"=="2" (
     echo.
-    echo Select method to set Kill program:
-    echo  [X] Select application via file Explorer
-    echo  [Y] Enter process name manually (e.g. msedge.exe)
-    choice /c XY /n /m "Choice (X/Y): "
+    echo ================================================================
+    echo  KILL CONFIGURATION METHOD
+    echo ================================================================
+    echo  [X] Explore
+    echo  [Y] Manuell
+    echo ================================================================
+    choice /c XY /n /m "Select method ([X] Explore / [Y] Manuell): "
     set "KILL_PROG="
     if errorlevel 2 (
         echo.
@@ -290,7 +396,6 @@ if "!func_choice!"=="2" (
         goto show_menu
     )
 
-    rem Anti-Loop / Selbtschutz-Prüfung für Kill
     for %%I in ("!KILL_PROG!") do set "kill_chk=%%~nxI"
     if /i "!kill_chk!"=="%~nx0" (
         set "status_msg=Error: You cannot target the Admin Helper!"
@@ -641,7 +746,7 @@ if "!rc!"=="0" (
 goto show_menu
 
 rem ================================================================
-rem  /youtube speed [0.25 - 5]
+rem  /youtube speed [0.01 - 10]
 rem ================================================================
 :do_youtube
 set "yt_sub="
@@ -652,26 +757,25 @@ if defined cmdarg for /f "tokens=1,*" %%a in ("!cmdarg!") do (
 )
 if /i "!yt_sub!"=="design" goto do_ytdesign
 if /i not "!yt_sub!"=="speed" (
-    set "status_msg=Usage: /youtube speed [0.25 - 5]  or  /youtube design [dark/white/default]"
+    set "status_msg=Usage: /youtube speed [0.01 - 10]  or  /youtube design [dark/white/default]"
     set "status_color=!YELLOW!"
     goto show_menu
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$v=0.0;$ok=[double]::TryParse(([string]$env:yt_val).Trim().Replace(',','.'),[Globalization.NumberStyles]::Float,[Globalization.CultureInfo]::InvariantCulture,[ref]$v);if(-not $ok -or [double]::IsNaN($v) -or $v -lt 0.25 -or $v -gt 5){exit 2};$s=$v.ToString([Globalization.CultureInfo]::InvariantCulture);$js='(()=>{const s='+$s+';try{localStorage.setItem(''yt-player-playback-rate'',JSON.stringify({data:String(s),creation:Date.now(),expiration:Date.now()+2592000000}))}catch(e){};const v=document.querySelector(''video'');if(v){v.playbackRate=s};console.log(''YouTube speed set to ''+s)})()';Set-Clipboard -Value $js;Write-Host ('Speed '+$s+' - script copied to clipboard.');exit 0"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$v=0.0;$ok=[double]::TryParse(([string]$env:yt_val).Trim().Replace(',','.'),[Globalization.NumberStyles]::Float,[Globalization.CultureInfo]::InvariantCulture,[ref]$v);if(-not $ok -or [double]::IsNaN($v) -or $v -lt 0.01 -or $v -gt 10){exit 2};$s=$v.ToString([Globalization.CultureInfo]::InvariantCulture);$js='(()=>{const s='+$s+';try{localStorage.setItem(''yt-player-playback-rate'',JSON.stringify({data:String(s),creation:Date.now(),expiration:Date.now()+2592000000}))}catch(e){};const v=document.querySelector(''video'');if(v){v.playbackRate=s};console.log(''YouTube speed set to ''+s)})()';Set-Clipboard -Value $js;Write-Host ('Speed '+$s+' - script copied to clipboard.');$hasWindow = Get-Process -Name chrome, msedge, firefox -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 }; if (-not $hasWindow) { Start-Process 'https://www.youtube.com' };exit 0"
 if errorlevel 1 (
-    set "status_msg=Invalid speed. Use a number from 0.25 to 5, e.g. /youtube speed 1.5"
+    set "status_msg=Invalid speed. Use a number from 0.01 to 10, e.g. /youtube speed 1.5"
     set "status_color=!RED!"
     goto show_menu
 )
 echo.
 echo ================================================================
-echo  1. YouTube opens in your default browser.
-echo  2. Open a video, press F12 and select the "Console" tab.
+echo  Script copied to clipboard!
+echo  1. Open your YouTube tab in your browser.
+echo  2. Press F12 and select the "Console" tab.
 echo  3. Press Ctrl+V and Enter. (First time in Chrome/Edge: type
 echo     "allow pasting" and press Enter before pasting.)
-echo  The speed applies immediately and is stored by YouTube in the
-echo  browser for the following videos.
+echo  The speed applies immediately.
 echo ================================================================
-start "" "https://www.youtube.com"
 echo.
 echo Press any key to return to menu...
 pause >nul
@@ -696,7 +800,7 @@ if not defined yt_t2 (
     set "status_color=!YELLOW!"
     goto show_menu
 )
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$js='(()=>{const T=''@@T@@'';const m=new Map();(document.cookie.split(''; '').find(c=>c.startsWith(''PREF=''))||''PREF='').slice(5).split(''&'').filter(Boolean).forEach(p=>{const i=p.indexOf(''='');m.set(p.slice(0,i),p.slice(i+1))});let f=parseInt(m.get(''f6'')||''0'',16)||0;f=(f&~(0x400|0x80000))>>>0;if(T===''dark''){f=(f|0x400)>>>0};if(T===''white''){f=(f|0x80000)>>>0};if(f){m.set(''f6'',f.toString(16))}else{m.delete(''f6'')};document.cookie=''PREF=''+[...m].map(([k,v])=>k+''=''+v).join(''&'')+'';domain=.youtube.com;path=/;max-age=31536000;secure'';location.reload()})()'.Replace('@@T@@',$env:yt_t2);Set-Clipboard -Value $js;Write-Host 'Script copied to clipboard.';exit 0"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$js='(()=>{const T=''@@T@@'';const m=new Map();(document.cookie.split(''; '').find(c=>c.startsWith(''PREF=''))||''PREF='').slice(5).split(''&'').filter(Boolean).forEach(p=>{const i=p.indexOf(''='');m.set(p.slice(0,i),p.slice(i+1))});let f=parseInt(m.get(''f6'')||''0'',16)||0;f=(f&~(0x400|0x80000))>>>0;if(T===''dark''){f=(f|0x400)>>>0};if(T===''white''){f=(f|0x80000)>>>0};if(f){m.set(''f6'',f.toString(16))}else{m.delete(''f6'')};document.cookie=''PREF=''+[...m].map(([k,v])=>k+''=''+v).join(''&'')+'';domain=.youtube.com;path=/;max-age=31536000;secure'';location.reload()})()'.Replace('@@T@@',$env:yt_t2);Set-Clipboard -Value $js;Write-Host 'Script copied to clipboard.';$hasWindow = Get-Process -Name chrome, msedge, firefox -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 }; if (-not $hasWindow) { Start-Process 'https://www.youtube.com/' };exit 0"
 if errorlevel 1 (
     set "status_msg=Could not copy the script to the clipboard."
     set "status_color=!RED!"
@@ -704,15 +808,13 @@ if errorlevel 1 (
 )
 echo.
 echo ================================================================
-echo  Theme: !yt_t2!
-echo  1. YouTube opens in your default browser.
+echo  Theme: !yt_t2! (Script copied to clipboard!)
+echo  1. Open your YouTube tab in your browser.
 echo  2. Press F12 and select the "Console" tab.
 echo  3. Press Ctrl+V and Enter. (First time in Chrome/Edge: type
 echo     "allow pasting" and press Enter before pasting.)
-echo  The page reloads with the new theme. YouTube keeps it in a
-echo  cookie, so it stays for later visits.
+echo  The page reloads with the new theme.
 echo ================================================================
-start "" "https://www.youtube.com/"
 echo.
 echo Press any key to return to menu...
 pause >nul
