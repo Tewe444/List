@@ -51,6 +51,6 @@ const DOWNLOADS = [
     name: "SkyPcConsol",
     bild: "SkyPcConsol.png",
     beschreibung: "SkyPcConsol ist eine Konsole vereinfacht",
-    dateien: { Windows: ["SkyPcConsole.bat"] }
+    dateien: { Windows: ["SkyPcConsol.bat"] }
   },
 ];
