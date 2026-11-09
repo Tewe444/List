@@ -38,19 +38,19 @@ const DOWNLOAD_BILDER = "downloads/bilder";
 /* Reihenfolge der Systeme im Auswahlfenster; alles andere danach */
 const SYSTEM_REIHENFOLGE = ["Windows", "Mac", "macOS", "Linux", "iOS", "Android"];
 
-const DOWNLOADS = [SkyPcConsol
+const DOWNLOADS = [
   {
     ordner: "SkyLauncher",
     name: "Sky Launcher",
     bild: "SkyLauncher.png",
     beschreibung: "Sky-Launcher",
-    dateien: { Windows: ["SkyLauncher-setup.zip"] }
+    dateien: { Windows: ["SkyLauncher-Setup.exe"] }
   },
   {
     ordner: "SkyPcConsol",
     name: "SkyPcConsol",
     bild: "SkyPcConsol.png",
     beschreibung: "SkyPcConsol ist eine Konsole vereinfacht",
-    dateien: { Windows: ["SkyPcConsol.bat"] }
+    dateien: { Windows: ["SkyPcConsole.bat"] }
   },
 ];
