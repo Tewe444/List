@@ -50,7 +50,7 @@ const DOWNLOADS = [SkyPcConsol
     ordner: "SkyPcConsol",
     name: "SkyPcConsol",
     bild: "SkyPcConsol.png",
-    beschreibung: "SkyPcConsol ist eine Konsole die vereinfacht Sachen an PC zu machen",
+    beschreibung: "SkyPcConsol ist eine Konsole vereinfacht",
     dateien: { Windows: ["SkyPcConsol.bat"] }
   },
 ];
