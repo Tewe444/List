@@ -141,6 +141,16 @@ const SEITEN = [
     zeigeInfo: true,
     infoText: "Mit der Nutzung dieser Plattform stimmst du zu, dass SoundCloud deinen Standort trackt, absolut alles von dir auf dieser Webseite für jeden öffentlich einsehbar ist und das Schreiben von Beleidigungen, Spam oder jeglichem anderen Unsinn komplett verboten ist"
   },
+  {
+    id: "stick_volley",
+    kategorie: "games",
+    name: "StickVolley",
+    ordner: "StickVolley",
+    bild: "",
+    zeigeInfo: true,
+    infoText: "Achtung: Die Inhalte auf dieser Website sind noch in der OpenBeta Also es konnen bugs kommen / made by Valle"
+  },
+   
   // ================= NÜTZLICHE WEBSEITEN =================
   {
     id: "detect-ai",
