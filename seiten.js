@@ -129,9 +129,18 @@ const SEITEN = [
     name: "SkyCraft",
     ordner: "SkyCraft",
     bild: "seiten/SkyCraft/preview.jpg",
-    zeigeInfo: false
+    zeigeInfo: true,
+    infoText: "Achtung: Alle Inhalte auf dieser Website sind öffentlich einsehbar und nicht privat!"
   },
-
+    {
+    id: "sky-royale",
+    kategorie: "games",
+    name: "Sky Royale",
+    ordner: "Sky-Royale",
+    bild: "",
+    zeigeInfo: true,
+    infoText: "Mit der Nutzung dieser Plattform stimmst du zu, dass SoundCloud deinen Standort trackt, absolut alles von dir auf dieser Webseite für jeden öffentlich einsehbar ist und das Schreiben von Beleidigungen, Spam oder jeglichem anderen Unsinn komplett verboten ist"
+  },
   // ================= NÜTZLICHE WEBSEITEN =================
   {
     id: "detect-ai",
