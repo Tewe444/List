@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valle's mini games</title>
+    <style>
+        /* Reines, tiefschwarzes Farbschema ohne bunte Akzente */
+        :root {
+            --bg-color: #000000;
+            --card-bg: #111111;
+            --text-main: #ffffff;
+            --text-muted: #888888;
+            --border-color: #262626;
+            --border-hover: #525252;
+            --btn-bg: #111111;
+            --btn-hover: #1a1a1a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.5;
+        }
+
+        /* Kopfbereich mit Zurück-Button */
+        header {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1.5rem 1.25rem 0;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 0.9rem;
+            background-color: var(--btn-bg);
+            color: var(--text-main);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+
+        .back-button:hover {
+            background-color: var(--btn-hover);
+            border-color: var(--border-hover);
+        }
+
+        /* Hauptbereich */
+        main {
+            flex: 1;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2.5rem 1.25rem;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Schlichtes Grid für die Spiele-Ordner */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 0.875rem;
+        }
+
+        .game-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.1rem 1.25rem;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            text-decoration: none;
+            color: var(--text-main);
+            font-weight: 500;
+            font-size: 1rem;
+            transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+
+        .game-card:hover {
+            border-color: var(--border-hover);
+            background-color: var(--btn-hover);
+        }
+
+        .game-arrow {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            transition: transform 0.15s ease;
+        }
+
+        .game-card:hover .game-arrow {
+            transform: translateX(3px);
+            color: var(--text-main);
+        }
+
+        /* Fußzeile */
+        footer {
+            width: 100%;
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <a href="https://tewe444.github.io/List/" class="back-button">← Zurück</a>
+    </header>
+
+    <main>
+        <h1>Valle's mini games</h1>
+        <div id="gamesContainer" class="games-grid"></div>
+    </main>
+
+    <footer>
+        Made by Valle
+    </footer>
+
+    <script>
+        /* ========================================================================
+           KONFIGURATION:
+           Trage hier einfach die genauen Namen deiner Unterordner ein.
+           Beispiel: Wenn dein Spiel unter "/Spiele/Snake/index.html" liegt,
+           trage hier einfach "Snake" ein.
+           ======================================================================== */
+        const spieleOrdner = [
+            "Snake",
+            "Pong",
+            "Flappy Bird"
+        ];
+
+        const container = document.getElementById("gamesContainer");
+
+        // Erstellt die schlichten Karten für jeden Ordnernamen
+        function renderGames(ordnerListe) {
+            container.innerHTML = "";
+            ordnerListe.forEach(name => {
+                const link = document.createElement("a");
+                // Verlinkt sauber auf ./Ordnername/index.html
+                link.href = `./${encodeURIComponent(name)}/index.html`;
+                link.className = "game-card";
+
+                const titleSpan = document.createElement("span");
+                titleSpan.textContent = name;
+
+                const arrowSpan = document.createElement("span");
+                arrowSpan.className = "game-arrow";
+                arrowSpan.textContent = "→";
+
+                link.appendChild(titleSpan);
+                link.appendChild(arrowSpan);
+                container.appendChild(link);
+            });
+        }
+
+        // Optionale Automatik für GitHub Pages (liest Unterordner im Repository aus)
+        async function loadGames() {
+            const host = window.location.hostname;
+            if (host.endsWith("github.io")) {
+                try {
+                    const user = host.split(".")[0];
+                    const pathParts = window.location.pathname.split("/").filter(Boolean);
+                    if (pathParts.length > 0) {
+                        const repo = pathParts[0];
+                        // Prüft, ob die index.html selbst in einem Unterordner liegt
+                        const subPathParts = pathParts.slice(1);
+                        if (subPathParts.length > 0 && subPathParts[subPathParts.length - 1].endsWith(".html")) {
+                            subPathParts.pop();
+                        }
+                        const subPath = subPathParts.join("/");
+                        const apiUrl = `https://api.github.com/repos/${user}/${repo}/contents/${subPath}`;
+
+                        const response = await fetch(apiUrl);
+                        if (response.ok) {
+                            const items = await response.json();
+                            // Filtert nur echte Unterordner heraus (ignoriert versteckte Ordner wie .git)
+                            const dirs = items
+                                .filter(item => item.type === "dir" && !item.name.startsWith("."))
+                                .map(item => item.name);
+
+                            if (dirs.length > 0) {
+                                renderGames(dirs);
+                                return;
+                            }
+                        }
+                    }
+                } catch (e) {
+                    // Bei Fehlern oder Offline-Nutzung greift automatisch der Fallback unten
+                }
+            }
+            // Standard-Anzeige aus der Liste oben (funktioniert immer lokal & offline)
+            renderGames(spieleOrdner);
+        }
+
+        loadGames();
+    </script>
+</body>
+</html>
