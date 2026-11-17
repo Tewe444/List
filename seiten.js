@@ -142,10 +142,10 @@ const SEITEN = [
     infoText: "Mit der Nutzung dieser Plattform stimmst du zu, dass SoundCloud deinen Standort trackt, absolut alles von dir auf dieser Webseite für jeden öffentlich einsehbar ist und das Schreiben von Beleidigungen, Spam oder jeglichem anderen Unsinn komplett verboten ist"
   },
   {
-    id: "sky_ball",
+    id: "v-games",
     kategorie: "games",
-    name: "SkyBall",
-    ordner: "SkyBall",
+    name: "V-games",
+    ordner: "v-games",
     bild: "",
     zeigeInfo: true,
     infoText: "Achtung: Die Inhalte auf dieser Website sind noch in der OpenBeta Also es konnen bugs kommen / made by Valle"
