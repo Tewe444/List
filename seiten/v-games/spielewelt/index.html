@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Valles Spielewelt</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Fredoka','Trebuchet MS',system-ui,sans-serif;background:#eef1ff;background-image:radial-gradient(#d9defc 1.5px,transparent 1.5px);background-size:22px 22px;color:#1f2350;min-height:100vh}
+.hide{display:none!important}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:12px;padding:10px 16px;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);box-shadow:0 2px 12px rgba(40,50,120,.1)}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:24px;cursor:pointer;white-space:nowrap}
+.logo .mark{width:42px;height:42px;border-radius:14px;background:conic-gradient(#ff4d6d,#ffd23f,#3cc84a,#2f7bff,#b06bff,#ff4d6d);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 0 #0002;transform:rotate(-8deg)}
+.logo span b{color:#5b3cff}
+#search{flex:1;max-width:420px;border:0;background:#eef1ff;border-radius:999px;padding:11px 18px;font:inherit;font-size:16px;outline:none;color:#1f2350}
+#search:focus{box-shadow:0 0 0 3px #5b3cff55}
+.stat{margin-left:auto;background:#5b3cff;color:#fff;border-radius:999px;padding:8px 14px;font-weight:700;font-size:14px;white-space:nowrap}
+.cats{display:flex;gap:8px;overflow-x:auto;padding:14px 16px 4px;scrollbar-width:none}
+.cat{border:0;background:#fff;border-radius:999px;padding:9px 16px;font:inherit;font-weight:700;font-size:15px;color:#1f2350;cursor:pointer;white-space:nowrap;box-shadow:0 3px 0 #d0d6f5}
+.cat.on{background:#5b3cff;color:#fff;box-shadow:0 3px 0 #3a1fb8}
+h3{padding:14px 18px 4px;font-size:20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));grid-auto-rows:118px;grid-auto-flow:dense;gap:12px;padding:8px 16px 30px}
+.tile{position:relative;border-radius:20px;cursor:pointer;overflow:hidden;box-shadow:0 5px 0 rgba(0,0,0,.12),0 8px 18px rgba(40,50,120,.15);transition:transform .15s,box-shadow .15s;display:flex;align-items:center;justify-content:center;border:0;color:#fff;font:inherit}
+.tile:hover{transform:translateY(-4px) scale(1.03);z-index:2}
+.tile.big{grid-column:span 2;grid-row:span 2}
+.tile .em{font-size:54px;filter:drop-shadow(0 4px 4px rgba(0,0,0,.25));transition:transform .2s}
+.tile.big .em{font-size:110px}
+.tile:hover .em{transform:scale(1.15) rotate(-6deg)}
+.tile .nm{position:absolute;left:0;right:0;bottom:0;padding:18px 8px 7px;background:linear-gradient(transparent,rgba(0,0,0,.55));font-weight:700;font-size:14px;text-align:center;opacity:0;transition:opacity .15s}
+.tile:hover .nm,.tile.big .nm{opacity:1}
+@media(hover:none){.tile .nm{opacity:1}}
+.tile .bs{position:absolute;top:7px;left:7px;background:rgba(0,0,0,.35);border-radius:999px;font-size:11px;padding:2px 8px;font-weight:700}
+.tile .new{position:absolute;top:7px;right:7px;background:#ff3b6b;border-radius:999px;font-size:11px;padding:2px 8px;font-weight:700}
+.tile .fav{position:absolute;top:4px;right:6px;font-size:18px}
+.empty{padding:20px;font-weight:700;opacity:.6}
+footer{text-align:center;padding:10px 0 30px;font-size:13px;opacity:.7}
+/* Spielansicht */
+#play{position:fixed;inset:0;z-index:10;background:#1f2350;display:flex;flex-direction:column}
+.pbar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#2a2f6b;color:#fff}
+.pbar button{border:0;background:#5b3cff;color:#fff;font:inherit;font-weight:700;font-size:18px;border-radius:12px;padding:8px 14px;cursor:pointer;box-shadow:0 3px 0 #3a1fb8}
+.pbar button.alt{background:#ff9d1a;box-shadow:0 3px 0 #c46a00}
+.pbar button.fv{background:#ffffff22;box-shadow:none}
+.pbar .t{font-weight:700;font-size:19px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pbar .sc{background:#ffffff1f;border-radius:999px;padding:6px 12px;font-weight:700;white-space:nowrap}
+.stage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+#gc{background:#000;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.4);touch-action:none}
+.ov{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(20,22,60,.6);backdrop-filter:blur(3px)}
+.card{background:#fff;border-radius:24px;padding:24px;text-align:center;width:min(360px,90%);box-shadow:0 10px 0 #c9cff5}
+.card .big{font-size:70px}
+.card h2{font-size:30px;margin:4px 0}
+.card p{opacity:.75;margin:6px 0 14px}
+.card .res{font-size:22px;font-weight:700;margin:8px 0}
+.card .rec{color:#ff3b6b;font-weight:700;animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.08)}}
+.card button{border:0;font:inherit;font-weight:700;font-size:20px;border-radius:14px;padding:12px 24px;margin:5px;cursor:pointer;color:#fff;background:#3cc84a;box-shadow:0 5px 0 #22862c}
+.card button.b2{background:#5b3cff;box-shadow:0 5px 0 #3a1fb8}
+.more{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.more .mini{width:64px;height:64px;border-radius:16px;font-size:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.15)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" id="home"><div class="mark">🎮</div><span>Valles <b>Spielewelt</b></span></div>
+  <input id="search" placeholder="🔍 Spiel suchen…" autocomplete="off">
+  <div class="stat" id="stat">🏆 0</div>
+</header>
+<div class="cats" id="cats"></div>
+<div id="recentWrap"><h3>🕒 Zuletzt gespielt</h3><div class="grid" id="recent"></div></div>
+<h3 id="gridTitle">🔥 Alle Spiele</h3>
+<div class="grid" id="grid"></div>
+<footer>Ideen von Valle, JavaScript von Claude.ai</footer>
+
+<div id="play" class="hide">
+  <div class="pbar">
+    <button id="back">⬅</button>
+    <div class="t" id="pt"></div>
+    <div class="sc">⭐ <span id="psc">0</span></div>
+    <div class="sc">🏆 <span id="pbest">0</span></div>
+    <button class="fv" id="pfav">🤍</button>
+    <button class="alt" id="prs">↻</button>
+  </div>
+  <div class="stage" id="stage">
+    <canvas id="gc" width="480" height="640"></canvas>
+    <div class="ov" id="ov"><div class="card" id="card"></div></div>
+  </div>
+</div>
+<script>
+// ================== MINI-SPIELE ==================
+// Jedes Spiel: make(K) -> {update(dt), draw(c), key(code), down(x,y), move(x,y), up(x,y), swipe(d)}
+// K: {W,H, score(n), add(n), over(), rnd(a,b), ri(a,b), txt(c,s,x,y,size,col,al), keys}
+const GAMES = [];
+const reg = g => GAMES.push(g);
+const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+const KDIR = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
+function rrect(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+function btn(c, K, b, label, col, size) { c.fillStyle = col || '#5b6cff'; rrect(c, b.x, b.y, b.w, b.h, 14); c.fill(); K.txt(c, label, b.x + b.w / 2, b.y + b.h / 2 + 1, size || 22, '#fff'); }
+const hit = (b, x, y) => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h;
+const bg = (c, K, a, b) => { const g = c.createLinearGradient(0, 0, 0, K.H); g.addColorStop(0, a); g.addColorStop(1, b); c.fillStyle = g; c.fillRect(0, 0, K.W, K.H); };
+
+// 1 Schlange
+reg({ id: 'snake', name: 'Schlangen-Snack', em: '🐍', col: ['#3ddc84', '#0e9f5a'], cat: 'Klassiker', desc: 'Friss Äpfel und werde lang! Pfeiltasten oder wischen.',
+  make(K) {
+    const S = 24, C = 20, R = 25; let sn = [[10, 12], [9, 12], [8, 12]], dir = 'right', nd = 'right', t = 0, food = nf(), sp = 0.13;
+    function nf() { let f; do f = [K.ri(0, C - 1), K.ri(0, R - 1)]; while (sn && sn.some(s => s[0] === f[0] && s[1] === f[1])); return f; }
+    const turn = d => { const o = { up: 'down', down: 'up', left: 'right', right: 'left' }; if (o[d] !== dir) nd = d; };
+    return {
+      key(k) { if (KDIR[k]) turn(KDIR[k]); }, swipe: turn,
+      update(dt) { t += dt; if (t < sp) return; t = 0; dir = nd; const [dx, dy] = DIRS[dir]; const h = [sn[0][0] + dx, sn[0][1] + dy];
+        if (h[0] < 0 || h[1] < 0 || h[0] >= C || h[1] >= R || sn.some(s => s[0] === h[0] && s[1] === h[1])) return K.over();
+        sn.unshift(h); if (h[0] === food[0] && h[1] === food[1]) { K.add(1); food = nf(); sp = Math.max(0.06, sp - 0.003); } else sn.pop(); },
+      draw(c) { c.fillStyle = '#1b4332'; c.fillRect(0, 0, K.W, K.H);
+        for (let x = 0; x < C; x++) for (let y = 0; y < R; y++) if ((x + y) % 2) { c.fillStyle = '#1e4d39'; c.fillRect(x * S, y * S + 20, S, S); }
+        K.txt(c, '🍎', food[0] * S + 12, food[1] * S + 33, 20);
+        sn.forEach((s, i) => { c.fillStyle = i ? (i % 2 ? '#52e08f' : '#3ddc84') : '#a7ff83'; rrect(c, s[0] * S + 1, s[1] * S + 21, S - 2, S - 2, 7); c.fill(); });
+        c.fillStyle = '#000'; c.beginPath(); c.arc(sn[0][0] * S + 9, sn[0][1] * S + 30, 2.5, 0, 7); c.arc(sn[0][0] * S + 16, sn[0][1] * S + 30, 2.5, 0, 7); c.fill(); }
+    };
+  } });
+
+// 2 Flatter-Vogel
+reg({ id: 'flap', name: 'Flatter-Vogel', em: '🐤', col: ['#7fd3ff', '#2f8bff'], cat: 'Geschick', desc: 'Tippe oder Leertaste zum Flattern. Flieg durch die Lücken!',
+  make(K) {
+    let y = 300, vy = 0, pipes = [], t = 0, started = false;
+    const flap = () => { started = true; vy = -330; K.sfx(600); };
+    return {
+      key(k) { if (k === 'Space' || k === 'ArrowUp') flap(); }, down: flap,
+      update(dt) { if (!started) return; vy += 950 * dt; y += vy * dt; t -= dt;
+        if (t <= 0) { t = 1.5; pipes.push({ x: K.W + 40, g: K.rnd(140, K.H - 220), p: false }); }
+        for (const p of pipes) { p.x -= 170 * dt; if (!p.p && p.x < 100) { p.p = true; K.add(1); }
+          if (p.x < 140 && p.x + 70 > 100 && (y - 16 < p.g || y + 16 > p.g + 170)) K.over(); }
+        pipes = pipes.filter(p => p.x > -80); if (y > K.H - 40 || y < 0) K.over(); },
+      draw(c) { bg(c, K, '#7fd3ff', '#d6f4ff');
+        for (const p of pipes) { c.fillStyle = '#4caf50'; c.fillRect(p.x, 0, 70, p.g); c.fillRect(p.x, p.g + 170, 70, K.H); c.fillStyle = '#388e3c'; c.fillRect(p.x - 6, p.g - 24, 82, 24); c.fillRect(p.x - 6, p.g + 170, 82, 24); }
+        c.fillStyle = '#e0c068'; c.fillRect(0, K.H - 40, K.W, 40);
+        c.save(); c.translate(120, y); c.rotate(Math.max(-0.5, Math.min(1, vy / 600)));
+        c.fillStyle = '#ffd23f'; c.beginPath(); c.ellipse(0, 0, 20, 16, 0, 0, 7); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.arc(8, -5, 6, 0, 7); c.fill(); c.fillStyle = '#000'; c.beginPath(); c.arc(10, -5, 2.5, 0, 7); c.fill(); c.fillStyle = '#ff8a00'; c.beginPath(); c.moveTo(16, 2); c.lineTo(28, 5); c.lineTo(16, 9); c.fill(); c.fillStyle = '#f5b800'; c.beginPath(); c.ellipse(-6, 4, 9, 5, -0.4, 0, 7); c.fill(); c.restore();
+        if (!started) K.txt(c, 'Tippen zum Starten', K.W / 2, 200, 26, '#fff'); }
+    };
+  } });
+
+// 3 Ziegel-Brecher
+reg({ id: 'brick', name: 'Ziegel-Brecher', em: '🧱', col: ['#ff8a5c', '#e8322b'], cat: 'Klassiker', desc: 'Schiebe das Brett und zerschlage alle Steine!',
+  make(K) {
+    let px = 200, ball, br = [], lives = 3, lvl = 0; const pw = 90;
+    function rows() { br = []; for (let r = 0; r < 5 + lvl; r++) for (let i = 0; i < 8; i++) br.push({ x: 8 + i * 58, y: 70 + r * 24, a: 1, c: `hsl(${r * 40},80%,60%)` }); }
+    function reset() { ball = { x: K.W / 2, y: 500, vx: 180 * (Math.random() < .5 ? 1 : -1), vy: -300, st: false }; }
+    rows(); reset();
+    return {
+      move(x) { px = x - pw / 2; }, down(x) { px = x - pw / 2; ball.st = true; },
+      key(k) { if (k === 'Space') ball.st = true; },
+      update(dt) { if (K.keys.ArrowLeft) px -= 420 * dt; if (K.keys.ArrowRight) px += 420 * dt; px = Math.max(0, Math.min(K.W - pw, px));
+        if (!ball.st) { ball.x = px + pw / 2; ball.y = 580; return; }
+        ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+        if (ball.x < 8 || ball.x > K.W - 8) ball.vx *= -1, ball.x = Math.max(8, Math.min(K.W - 8, ball.x)); if (ball.y < 8) ball.vy = Math.abs(ball.vy);
+        if (ball.y > 588 && ball.y < 604 && ball.x > px && ball.x < px + pw && ball.vy > 0) { ball.vy = -Math.abs(ball.vy) * 1.02; ball.vx = (ball.x - px - pw / 2) * 7; }
+        if (ball.y > K.H) { lives--; if (!lives) return K.over(); reset(); }
+        for (const b of br) if (b.a && ball.x > b.x && ball.x < b.x + 54 && ball.y > b.y && ball.y < b.y + 20) { b.a = 0; ball.vy *= -1; K.add(10); K.sfx(800); break; }
+        if (br.every(b => !b.a)) { lvl++; rows(); reset(); } },
+      draw(c) { bg(c, K, '#1d1b4b', '#3a2f80'); for (const b of br) if (b.a) { c.fillStyle = b.c; rrect(c, b.x, b.y, 54, 20, 5); c.fill(); }
+        c.fillStyle = '#fff'; rrect(c, px, 592, pw, 14, 7); c.fill(); c.beginPath(); c.arc(ball.x, ball.y, 8, 0, 7); c.fill();
+        K.txt(c, '❤️'.repeat(lives), 60, 30, 18); }
+    };
+  } });
+
+// 4 Zahlen-Schieber
+reg({ id: 'merge', name: 'Zahlen-Schieber', em: '🔢', col: ['#ffd36b', '#f2a33a'], cat: 'Denken', desc: 'Schiebe gleiche Zahlen zusammen. Pfeiltasten oder wischen.',
+  make(K) {
+    let g = Array(16).fill(0); const add = () => { const e = g.map((v, i) => v ? -1 : i).filter(i => i >= 0); if (e.length) g[e[K.ri(0, e.length - 1)]] = Math.random() < 0.9 ? 2 : 4; };
+    add(); add();
+    function mv(d) {
+      const old = g.join(); const L = i => { const r = []; for (let k = 0; k < 4; k++) r.push(i(k)); return r; };
+      for (let a = 0; a < 4; a++) {
+        const idx = L(k => d === 'left' ? a * 4 + k : d === 'right' ? a * 4 + 3 - k : d === 'up' ? k * 4 + a : (3 - k) * 4 + a);
+        let v = idx.map(i => g[i]).filter(Boolean);
+        for (let k = 0; k < v.length - 1; k++) if (v[k] === v[k + 1]) { v[k] *= 2; K.add(v[k]); v.splice(k + 1, 1); }
+        idx.forEach((i, k) => g[i] = v[k] || 0);
+      }
+      if (g.join() !== old) { add(); K.sfx(400); }
+      const can = g.some(v => !v) || g.some((v, i) => (i % 4 < 3 && v === g[i + 1]) || (i < 12 && v === g[i + 4]));
+      if (!can) K.over();
+    }
+    const cols = { 2: '#eee4da', 4: '#ede0c8', 8: '#f2b179', 16: '#f59563', 32: '#f67c5f', 64: '#f65e3b', 128: '#edcf72', 256: '#edcc61', 512: '#edc850', 1024: '#edc53f', 2048: '#edc22e' };
+    return { key(k) { if (KDIR[k]) mv(KDIR[k]); }, swipe: mv, update() { },
+      draw(c) { c.fillStyle = '#faf8ef'; c.fillRect(0, 0, K.W, K.H); c.fillStyle = '#bbada0'; rrect(c, 20, 140, 440, 440, 14); c.fill();
+        g.forEach((v, i) => { const x = 32 + (i % 4) * 106, y = 152 + Math.floor(i / 4) * 106; c.fillStyle = v ? (cols[v] || '#3c3a32') : '#cdc1b4'; rrect(c, x, y, 96, 96, 10); c.fill(); if (v) K.txt(c, v, x + 48, y + 50, v > 512 ? 30 : 38, v > 4 ? '#fff' : '#776e65'); });
+        K.txt(c, 'Erreiche 2048!', K.W / 2, 100, 26, '#776e65'); } };
+  } });
+
+// 5 Memory
+reg({ id: 'memory', name: 'Tier-Memory', em: '🃏', col: ['#c58bff', '#7b3fe4'], cat: 'Denken', desc: 'Finde alle Paare mit möglichst wenigen Zügen!',
+  make(K) {
+    const em = ['🐶', '🐱', '🦊', '🐸', '🐼', '🐵', '🦁', '🐷']; let cards = em.concat(em).sort(() => Math.random() - .5).map(e => ({ e, open: false, done: false }));
+    let sel = [], moves = 0, wait = 0, found = 0;
+    return {
+      down(x, y) { if (wait > 0) return; const i = Math.floor((x - 20) / 110), j = Math.floor((y - 120) / 120); if (i < 0 || i > 3 || j < 0 || j > 3) return;
+        const cd = cards[j * 4 + i]; if (cd.open || cd.done) return; cd.open = true; sel.push(cd); K.sfx(500);
+        if (sel.length === 2) { moves++; if (sel[0].e === sel[1].e) { sel.forEach(s => s.done = true); sel = []; found++; K.score(Math.max(10, 200 - moves * 5)); if (found === 8) setTimeout(K.over, 600); } else wait = 0.8; } },
+      update(dt) { if (wait > 0) { wait -= dt; if (wait <= 0) { sel.forEach(s => s.open = false); sel = []; } } },
+      draw(c) { bg(c, K, '#efe3ff', '#d4b8ff'); K.txt(c, 'Züge: ' + moves, K.W / 2, 80, 26, '#5a2ca0');
+        cards.forEach((cd, k) => { const x = 20 + (k % 4) * 110, y = 120 + Math.floor(k / 4) * 120; c.fillStyle = cd.done ? '#b6f5c8' : cd.open ? '#fff' : '#7b3fe4'; rrect(c, x, y, 100, 110, 14); c.fill();
+          K.txt(c, cd.open || cd.done ? cd.e : '❓', x + 50, y + 58, cd.open || cd.done ? 50 : 34); }); }
+    };
+  } });
+
+// 6 Tic-Tac-Toe
+reg({ id: 'ttt', name: 'Drei gewinnt', em: '⭕', col: ['#5ce1e6', '#1f8fa8'], cat: 'Denken', desc: 'Schlag den Computer bei Tic-Tac-Toe! Jeder Sieg = Punkt.',
+  make(K) {
+    let b = Array(9).fill(''), msg = '', wins = 0, lock = false;
+    const L = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+    const win = (b, p) => L.some(l => l.every(i => b[i] === p));
+    function mm(b, p) { if (win(b, 'O')) return 1; if (win(b, 'X')) return -1; if (b.every(Boolean)) return 0; let best = p === 'O' ? -9 : 9;
+      for (let i = 0; i < 9; i++) if (!b[i]) { b[i] = p; const v = mm(b, p === 'O' ? 'X' : 'O'); b[i] = ''; best = p === 'O' ? Math.max(best, v) : Math.min(best, v); } return best; }
+    function ai() { if (Math.random() < 0.25) { const e = b.map((v, i) => v ? -1 : i).filter(i => i >= 0); return e[K.ri(0, e.length - 1)]; }
+      let bi = -1, bv = -9; for (let i = 0; i < 9; i++) if (!b[i]) { b[i] = 'O'; const v = mm(b, 'X'); b[i] = ''; if (v > bv) { bv = v; bi = i; } } return bi; }
+    function end(m) { msg = m; lock = true; setTimeout(() => { if (m === 'Verloren!') K.over(); else { b = Array(9).fill(''); msg = ''; lock = false; } }, 1200); }
+    return {
+      down(x, y) { if (lock) return; const i = Math.floor((x - 60) / 120), j = Math.floor((y - 160) / 120); if (i < 0 || i > 2 || j < 0 || j > 2 || b[j * 3 + i]) return;
+        b[j * 3 + i] = 'X'; K.sfx(500); if (win(b, 'X')) { wins++; K.score(wins); return end('Gewonnen! 🎉'); } if (b.every(Boolean)) return end('Unentschieden');
+        b[ai()] = 'O'; if (win(b, 'O')) return end('Verloren!'); if (b.every(Boolean)) return end('Unentschieden'); },
+      update() { },
+      draw(c) { bg(c, K, '#e0fbfc', '#9be7ee'); c.strokeStyle = '#1f8fa8'; c.lineWidth = 8; c.lineCap = 'round';
+        for (let k = 1; k < 3; k++) { c.beginPath(); c.moveTo(60 + k * 120, 170); c.lineTo(60 + k * 120, 510); c.moveTo(70, 160 + k * 120); c.lineTo(410, 160 + k * 120); c.stroke(); }
+        b.forEach((v, k) => v && K.txt(c, v === 'X' ? '❌' : '⭕', 120 + (k % 3) * 120, 222 + Math.floor(k / 3) * 120, 70));
+        K.txt(c, msg || 'Du bist ❌', K.W / 2, 100, 30, '#0b4f5c'); }
+    };
+  } });
+
+// 7 Vier in einer Reihe
+reg({ id: 'c4', name: 'Vier in Reihe', em: '🔴', col: ['#ff6b6b', '#3a57d8'], cat: 'Denken', desc: 'Lass deine roten Steine fallen und bilde 4 in einer Reihe.',
+  make(K) {
+    let g = Array(42).fill(0), msg = '', lock = false, wins = 0; const at = (x, y) => (x < 0 || x > 6 || y < 0 || y > 5) ? -1 : g[y * 7 + x];
+    const four = p => { for (let y = 0; y < 6; y++) for (let x = 0; x < 7; x++) for (const [dx, dy] of [[1, 0], [0, 1], [1, 1], [1, -1]]) { let k = 0; while (k < 4 && at(x + dx * k, y + dy * k) === p) k++; if (k === 4) return true; } return false; };
+    const drop = (x, p) => { for (let y = 5; y >= 0; y--) if (!g[y * 7 + x]) { g[y * 7 + x] = p; return y; } return -1; };
+    const undo = x => { for (let y = 0; y < 6; y++) if (g[y * 7 + x]) { g[y * 7 + x] = 0; return; } };
+    function ai() { for (const p of [2, 1]) for (let x = 0; x < 7; x++) if (drop(x, p) >= 0) { const w = four(p); undo(x); if (w) return x; }
+      const o = [3, 2, 4, 1, 5, 0, 6].filter(x => !g[x]); return Math.random() < 0.6 ? o[0] : o[K.ri(0, o.length - 1)]; }
+    function end(m, lost) { msg = m; lock = true; setTimeout(() => { if (lost) K.over(); else { g.fill(0); msg = ''; lock = false; } }, 1300); }
+    return {
+      down(x) { if (lock) return; const cx = Math.floor((x - 20) / 63); if (cx < 0 || cx > 6 || drop(cx, 1) < 0) return; K.sfx(300);
+        if (four(1)) { wins++; K.score(wins); return end('Gewonnen! 🎉'); } if (g.every(Boolean)) return end('Unentschieden');
+        lock = true; setTimeout(() => { drop(ai(), 2); lock = false; K.sfx(250); if (four(2)) end('Verloren!', true); else if (g.every(Boolean)) end('Unentschieden'); }, 350); },
+      update() { },
+      draw(c) { bg(c, K, '#dfe6ff', '#b3c2ff'); c.fillStyle = '#3a57d8'; rrect(c, 14, 150, 452, 392, 20); c.fill();
+        g.forEach((v, k) => { c.fillStyle = v === 1 ? '#ff4d4d' : v === 2 ? '#ffd23f' : '#dfe6ff'; c.beginPath(); c.arc(51 + (k % 7) * 63, 186 + Math.floor(k / 7) * 63, 26, 0, 7); c.fill(); });
+        K.txt(c, msg || 'Du bist 🔴 – tippe eine Spalte', K.W / 2, 100, 24, '#22306e'); }
+    };
+  } });
+
+// 8 Pong
+reg({ id: 'pong', name: 'Tisch-Tennis', em: '🏓', col: ['#4cd964', '#178a3d'], cat: 'Klassiker', desc: 'Schlag den Ball am Computer vorbei. Wer zuerst 7 hat, gewinnt!',
+  make(K) {
+    let px = 200, ax = 200, b, me = 0, cpu = 0; const pw = 90;
+    const serve = d => b = { x: K.W / 2, y: K.H / 2, vx: K.rnd(-150, 150), vy: 260 * d };
+    serve(1);
+    return {
+      move(x) { px = x - pw / 2; }, down(x) { px = x - pw / 2; },
+      update(dt) { if (K.keys.ArrowLeft) px -= 400 * dt; if (K.keys.ArrowRight) px += 400 * dt; px = Math.max(0, Math.min(K.W - pw, px));
+        ax += Math.max(-230 * dt, Math.min(230 * dt, b.x - pw / 2 - ax)); b.x += b.vx * dt; b.y += b.vy * dt;
+        if (b.x < 8 || b.x > K.W - 8) b.vx *= -1;
+        if (b.vy > 0 && b.y > 590 && b.y < 610 && b.x > px && b.x < px + pw) { b.vy = -Math.abs(b.vy) * 1.06; b.vx = (b.x - px - pw / 2) * 8; K.sfx(500); }
+        if (b.vy < 0 && b.y < 50 && b.y > 30 && b.x > ax && b.x < ax + pw) { b.vy = Math.abs(b.vy) * 1.04; b.vx = (b.x - ax - pw / 2) * 7; K.sfx(400); }
+        if (b.y < 0) { me++; K.score(me); if (me >= 7) { K.add(10); return K.over(); } serve(-1); }
+        if (b.y > K.H) { cpu++; if (cpu >= 7) return K.over(); serve(1); } },
+      draw(c) { c.fillStyle = '#178a3d'; c.fillRect(0, 0, K.W, K.H); c.strokeStyle = '#fff'; c.lineWidth = 4; c.setLineDash([12, 10]); c.beginPath(); c.moveTo(0, K.H / 2); c.lineTo(K.W, K.H / 2); c.stroke(); c.setLineDash([]);
+        K.txt(c, cpu, 40, K.H / 2 - 40, 40, '#ffffffaa'); K.txt(c, me, 40, K.H / 2 + 44, 40, '#ffffffaa');
+        c.fillStyle = '#ff6b6b'; rrect(c, ax, 34, pw, 14, 7); c.fill(); c.fillStyle = '#fff'; rrect(c, px, 596, pw, 14, 7); c.fill();
+        c.fillStyle = '#ffd23f'; c.beginPath(); c.arc(b.x, b.y, 9, 0, 7); c.fill(); }
+    };
+  } });
+
+// 9 Hüpf-Hase
+reg({ id: 'run', name: 'Hüpf-Hase', em: '🐰', col: ['#ffc6e0', '#ff6fb5'], cat: 'Geschick', desc: 'Tippe zum Springen und hüpfe über die Steine!',
+  make(K) {
+    let y = 0, vy = 0, obs = [], t = 1, sp = 260, d = 0; const G = 500;
+    const jump = () => { if (y === 0) { vy = -560; K.sfx(700); } };
+    return {
+      down: jump, key(k) { if (k === 'Space' || k === 'ArrowUp') jump(); },
+      update(dt) { vy += 1500 * dt; y = Math.min(0, y + vy * dt); if (y === 0) vy = 0; sp += 6 * dt; d += sp * dt; K.score(Math.floor(d / 50));
+        t -= dt; if (t <= 0) { t = K.rnd(0.8, 1.8) * 260 / sp * 1.3; obs.push({ x: K.W + 20, h: K.rnd(26, 50), w: K.rnd(26, 44) }); }
+        for (const o of obs) { o.x -= sp * dt; if (o.x < 110 && o.x + o.w > 76 && G + y > G - o.h + 6) K.over(); } obs = obs.filter(o => o.x > -60); },
+      draw(c) { bg(c, K, '#ffe3f1', '#fff8fc'); c.fillStyle = '#8bd17c'; c.fillRect(0, G, K.W, K.H); c.fillStyle = '#6bb85c'; for (let x = -(d % 40); x < K.W; x += 40) c.fillRect(x, G, 20, 6);
+        for (const o of obs) { c.fillStyle = '#8a8f9c'; rrect(c, o.x, G - o.h, o.w, o.h, 10); c.fill(); }
+        K.txt(c, '🐰', 92, G + y - 26, 52); }
+    };
+  } });
+
+// 10 Weltraum-Abwehr
+reg({ id: 'space', name: 'Weltraum-Abwehr', em: '🚀', col: ['#3a2f80', '#0b0826'], cat: 'Action', desc: 'Bewege dein Raumschiff und schieße die Ufos ab!',
+  make(K) {
+    let x = 240, sh = [], en = [], t = 0, ft = 0, lives = 3, stars = Array.from({ length: 60 }, () => [K.rnd(0, 480), K.rnd(0, 640), K.rnd(1, 3)]);
+    return {
+      move(px) { x = px; }, down(px) { x = px; },
+      update(dt) { if (K.keys.ArrowLeft) x -= 360 * dt; if (K.keys.ArrowRight) x += 360 * dt; x = Math.max(20, Math.min(K.W - 20, x));
+        stars.forEach(s => { s[1] += s[2] * 40 * dt; if (s[1] > 640) s[1] = 0; });
+        ft -= dt; if (ft <= 0) { ft = 0.22; sh.push({ x, y: 570 }); }
+        t -= dt; if (t <= 0) { t = Math.max(0.35, 1 - K.sc() * 0.01); en.push({ x: K.rnd(30, 450), y: -20, v: K.rnd(80, 140) + K.sc(), w: K.rnd(-1, 1) }); }
+        sh.forEach(s => s.y -= 520 * dt); en.forEach(e => { e.y += e.v * dt; e.x += Math.sin(e.y / 40) * e.w; });
+        for (const e of en) for (const s of sh) if (!e.d && !s.d && Math.abs(e.x - s.x) < 22 && Math.abs(e.y - s.y) < 20) { e.d = s.d = 1; K.add(1); K.sfx(900); }
+        for (const e of en) if (!e.d && (e.y > 660 || (Math.abs(e.x - x) < 26 && Math.abs(e.y - 590) < 24))) { e.d = 1; lives--; if (!lives) K.over(); }
+        sh = sh.filter(s => !s.d && s.y > -10); en = en.filter(e => !e.d); },
+      draw(c) { c.fillStyle = '#0b0826'; c.fillRect(0, 0, K.W, K.H); c.fillStyle = '#fff'; stars.forEach(s => c.fillRect(s[0], s[1], s[2], s[2]));
+        c.fillStyle = '#7dffd6'; sh.forEach(s => c.fillRect(s.x - 2, s.y - 10, 4, 14)); en.forEach(e => K.txt(c, '🛸', e.x, e.y, 34));
+        K.txt(c, '🚀', x, 594, 40); K.txt(c, '❤️'.repeat(lives), 60, 30, 18); }
+    };
+  } });
+
+// 11 Maulwurf hauen
+reg({ id: 'mole', name: 'Maulwurf-Hauen', em: '🔨', col: ['#c08552', '#6b3d16'], cat: 'Geschick', desc: 'Hau so viele Maulwürfe wie möglich in 30 Sekunden!',
+  make(K) {
+    let holes = Array(9).fill(0).map(() => ({ t: 0, up: 0, hit: 0 })), time = 30, sp = 0;
+    return {
+      down(x, y) { const i = Math.floor((x - 30) / 140), j = Math.floor((y - 160) / 150); if (i < 0 || i > 2 || j < 0 || j > 2) return; const h = holes[j * 3 + i];
+        if (h.up > 0.4 && !h.hit) { h.hit = 1; h.t = 0.3; K.add(1); K.sfx(300); } },
+      update(dt) { time -= dt; if (time <= 0) return K.over(); sp -= dt;
+        if (sp <= 0) { sp = K.rnd(0.35, 0.8); const h = holes[K.ri(0, 8)]; if (h.t <= 0) { h.t = K.rnd(0.7, 1.3); h.hit = 0; } }
+        holes.forEach(h => { h.t -= dt; h.up += ((h.t > 0 && !h.hit) ? 1 : -1) * dt * 6; h.up = Math.max(0, Math.min(1, h.up)); }); },
+      draw(c) { bg(c, K, '#9be15d', '#5fae3a'); K.txt(c, '⏱ ' + Math.ceil(time), K.W / 2, 90, 34, '#fff');
+        holes.forEach((h, k) => { const x = 100 + (k % 3) * 140, y = 260 + Math.floor(k / 3) * 150;
+          c.fillStyle = '#4a2d14'; c.beginPath(); c.ellipse(x, y + 20, 55, 20, 0, 0, 7); c.fill();
+          c.save(); c.beginPath(); c.rect(x - 60, y - 90, 120, 110); c.clip(); K.txt(c, h.hit ? '😵' : '🐹', x, y + 50 - h.up * 60, 64); c.restore();
+          c.fillStyle = '#7a4a24'; c.beginPath(); c.ellipse(x, y + 26, 58, 12, 0, 0, Math.PI); c.fill(); }); }
+    };
+  } });
+
+// 12 Minen-Suche
+reg({ id: 'mines', name: 'Minen-Suche', em: '💣', col: ['#b0bec5', '#546e7a'], cat: 'Denken', desc: 'Decke alle Felder ohne Bombe auf. Fahnen-Knopf zum Markieren.',
+  make(K) {
+    const C = 9, R = 10, S = 50, N = 12, ox = 15, oy = 65; let g = [], first = true, flag = false, left = C * R - N;
+    for (let i = 0; i < C * R; i++) g.push({ m: 0, o: 0, f: 0, n: 0 });
+    const nb = i => { const x = i % C, y = Math.floor(i / C), r = []; for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) { const a = x + dx, b = y + dy; if ((dx || dy) && a >= 0 && b >= 0 && a < C && b < R) r.push(b * C + a); } return r; };
+    function place(safe) { let k = 0; while (k < N) { const i = K.ri(0, C * R - 1); if (i === safe || nb(safe).includes(i) || g[i].m) continue; g[i].m = 1; k++; } g.forEach((c, i) => c.n = nb(i).filter(j => g[j].m).length); }
+    function open(i) { const c = g[i]; if (c.o || c.f) return; c.o = 1; if (c.m) { g.forEach(x => x.m && (x.o = 1)); setTimeout(K.over, 900); return; } left--; K.add(1); if (!c.n) nb(i).forEach(open); }
+    const fb = { x: 140, y: 580, w: 200, h: 50 };
+    return {
+      down(x, y) { if (hit(fb, x, y)) { flag = !flag; return; } const i = Math.floor((x - ox) / S), j = Math.floor((y - oy) / S); if (i < 0 || i >= C || j < 0 || j >= R) return; const k = j * C + i;
+        if (flag) { if (!g[k].o) g[k].f ^= 1; return; } if (first) { first = false; place(k); } open(k); K.sfx(500);
+        if (left === 0) { K.add(50); setTimeout(K.over, 500); } },
+      update() { },
+      draw(c) { c.fillStyle = '#eceff1'; c.fillRect(0, 0, K.W, K.H); K.txt(c, '💣 ' + N + '   Felder übrig: ' + left, K.W / 2, 40, 20, '#37474f');
+        g.forEach((d, k) => { const x = ox + (k % C) * S, y = oy + Math.floor(k / C) * S; c.fillStyle = d.o ? (d.m ? '#ff8a80' : '#fff') : '#90a4ae'; rrect(c, x + 2, y + 2, S - 4, S - 4, 6); c.fill();
+          if (d.o && d.m) K.txt(c, '💣', x + 25, y + 27, 26); else if (d.o && d.n) K.txt(c, d.n, x + 25, y + 27, 24, ['', '#1e88e5', '#43a047', '#e53935', '#5e35b1', '#8d6e63', '#00897b', '#000', '#555'][d.n]); else if (d.f) K.txt(c, '🚩', x + 25, y + 27, 24); });
+        btn(c, K, fb, flag ? '🚩 Fahne: AN' : '👆 Aufdecken', flag ? '#e53935' : '#546e7a', 20); }
+    };
+  } });
+
+// 13 Stapel-Turm
+reg({ id: 'stack', name: 'Stapel-Turm', em: '🏗️', col: ['#ffb36b', '#ff6b3d'], cat: 'Geschick', desc: 'Tippe, um den Block zu stoppen. Baue den höchsten Turm!',
+  make(K) {
+    let st = [{ x: 140, w: 200 }], cur = { x: 0, w: 200, d: 1 }, sp = 200, cam = 0; const H = 34;
+    return {
+      down() { const top = st[st.length - 1]; const l = Math.max(top.x, cur.x), r = Math.min(top.x + top.w, cur.x + cur.w);
+        if (r - l <= 0) return K.over(); const perfect = Math.abs(cur.x - top.x) < 5; st.push(perfect ? { x: top.x, w: top.w } : { x: l, w: r - l }); K.add(perfect ? 2 : 1); K.sfx(perfect ? 900 : 500);
+        cur = { x: Math.random() < 0.5 ? -200 : K.W, w: st[st.length - 1].w, d: 1 }; cur.d = cur.x < 0 ? 1 : -1; sp += 12; },
+      key(k) { if (k === 'Space') this.down(); },
+      update(dt) { cur.x += cur.d * sp * dt; if (cur.x > K.W - cur.w + 60 || cur.x < -60) cur.d *= -1; cam += (Math.max(0, st.length - 10) * H - cam) * 0.1; },
+      draw(c) { bg(c, K, `hsl(${200 + st.length * 3},70%,70%)`, '#fff');
+        st.forEach((b, i) => { c.fillStyle = `hsl(${i * 15},75%,60%)`; c.fillRect(b.x, 600 - i * H + cam, b.w, H - 2); });
+        c.fillStyle = `hsl(${st.length * 15},75%,60%)`; c.fillRect(cur.x, 600 - st.length * H + cam, cur.w, H - 2); }
+    };
+  } });
+
+// 14 Blitz-Reaktion
+reg({ id: 'react', name: 'Blitz-Reaktion', em: '⚡', col: ['#ffe14d', '#ff9d1a'], cat: 'Geschick', desc: 'Warte auf Grün und tippe so schnell du kannst! 5 Runden.',
+  make(K) {
+    let st = 'wait', t = K.rnd(1.2, 3), times = [], rt = 0, msg = '';
+    return {
+      down() { if (st === 'wait') { msg = 'Zu früh! 😅'; t = K.rnd(1.2, 3); times.push(600); }
+        else if (st === 'go') { times.push(rt * 1000); msg = Math.round(rt * 1000) + ' ms'; st = 'wait'; t = K.rnd(1.2, 3); K.sfx(800); }
+        if (times.length >= 5) { const avg = times.reduce((a, b) => a + b) / times.length; K.score(Math.max(0, Math.round(1000 - avg))); K.over(); } },
+      update(dt) { if (st === 'wait') { t -= dt; if (t <= 0) { st = 'go'; rt = 0; } } else rt += dt; },
+      draw(c) { c.fillStyle = st === 'go' ? '#3cc84a' : '#e8322b'; c.fillRect(0, 0, K.W, K.H);
+        K.txt(c, st === 'go' ? 'JETZT!' : 'Warte…', K.W / 2, 280, 64, '#fff'); K.txt(c, msg, K.W / 2, 360, 30, '#fff'); K.txt(c, 'Runde ' + Math.min(5, times.length + 1) + ' / 5', K.W / 2, 560, 22, '#ffffffcc'); }
+    };
+  } });
+
+// 15 Farb-Falle
+reg({ id: 'stroop', name: 'Farb-Falle', em: '🎨', col: ['#ff6fb5', '#8e5cff'], cat: 'Denken', desc: 'Tippe die FARBE des Wortes – nicht was da steht! 30 Sekunden.',
+  make(K) {
+    const C = [['ROT', '#e8322b'], ['BLAU', '#2f7bff'], ['GRÜN', '#2fae3a'], ['GELB', '#f5b800']]; let w, col, time = 30, fl = 0;
+    const nw = () => { w = K.ri(0, 3); col = K.ri(0, 3); }; nw();
+    const B = C.map((cc, i) => ({ x: 30 + (i % 2) * 220, y: 380 + Math.floor(i / 2) * 110, w: 200, h: 90 }));
+    return {
+      down(x, y) { B.forEach((b, i) => { if (hit(b, x, y)) { if (i === col) { K.add(1); K.sfx(700); } else { time -= 2; fl = 0.3; K.sfx(150); } nw(); } }); },
+      update(dt) { time -= dt; fl -= dt; if (time <= 0) K.over(); },
+      draw(c) { c.fillStyle = fl > 0 ? '#ffd6d6' : '#fff'; c.fillRect(0, 0, K.W, K.H); K.txt(c, '⏱ ' + Math.ceil(time), K.W / 2, 70, 30, '#333');
+        K.txt(c, C[w][0], K.W / 2, 230, 80, C[col][1]); B.forEach((b, i) => btn(c, K, b, C[i][0], '#444', 28)); }
+    };
+  } });
+
+// 16 Farb-Gedächtnis
+reg({ id: 'simon', name: 'Farb-Gedächtnis', em: '🟢', col: ['#4cd964', '#2f7bff'], cat: 'Denken', desc: 'Merke dir die Reihenfolge der Farben und tippe sie nach.',
+  make(K) {
+    const P = [{ c: '#e8322b', f: 330 }, { c: '#2f7bff', f: 440 }, { c: '#2fae3a', f: 550 }, { c: '#f5b800', f: 660 }];
+    const B = P.map((p, i) => ({ x: 40 + (i % 2) * 210, y: 150 + Math.floor(i / 2) * 210, w: 190, h: 190 }));
+    let seq = [K.ri(0, 3)], show = 0, st = 'show', t = 0.8, lit = -1, pos = 0;
+    return {
+      down(x, y) { if (st !== 'in') return; B.forEach((b, i) => { if (!hit(b, x, y)) return; lit = i; t = 0.2; K.sfx(P[i].f);
+        if (i !== seq[pos]) return K.over(); pos++; if (pos === seq.length) { K.score(seq.length); seq.push(K.ri(0, 3)); st = 'show'; show = 0; t = 1; } }); },
+      update(dt) { t -= dt; if (st === 'show') { if (t <= 0) { if (lit >= 0) { lit = -1; t = 0.2; return; } if (show >= seq.length) { st = 'in'; pos = 0; return; } lit = seq[show++]; K.sfx(P[lit].f); t = 0.5; } }
+        else if (t <= 0) lit = -1; },
+      draw(c) { c.fillStyle = '#22252e'; c.fillRect(0, 0, K.W, K.H); K.txt(c, st === 'show' ? 'Gut zuschauen…' : 'Du bist dran!', K.W / 2, 90, 30, '#fff');
+        B.forEach((b, i) => { c.globalAlpha = lit === i ? 1 : 0.4; c.fillStyle = P[i].c; rrect(c, b.x, b.y, b.w, b.h, 24); c.fill(); }); c.globalAlpha = 1; }
+    };
+  } });
+
+// 17 Spur-Raser
+reg({ id: 'lanes', name: 'Spur-Raser', em: '🏎️', col: ['#6c7a89', '#2b2d36'], cat: 'Action', desc: 'Weiche den Autos aus! Links/rechts tippen oder Pfeiltasten.',
+  make(K) {
+    let lane = 1, x = 240, cars = [], t = 0, sp = 300, d = 0; const L = [100, 240, 380];
+    return {
+      down(px) { lane = Math.max(0, Math.min(2, lane + (px < K.W / 2 ? -1 : 1))); },
+      key(k) { if (k === 'ArrowLeft' || k === 'KeyA') lane = Math.max(0, lane - 1); if (k === 'ArrowRight' || k === 'KeyD') lane = Math.min(2, lane + 1); },
+      update(dt) { x += (L[lane] - x) * Math.min(1, dt * 14); sp += 10 * dt; d += sp * dt; K.score(Math.floor(d / 100));
+        t -= dt; if (t <= 0) { t = K.rnd(0.5, 1.1) * 300 / sp * 1.4; cars.push({ l: K.ri(0, 2), y: -60, e: ['🚗', '🚙', '🚕', '🚌'][K.ri(0, 3)] }); }
+        for (const cc of cars) { cc.y += sp * 0.8 * dt; if (Math.abs(L[cc.l] - x) < 50 && Math.abs(cc.y - 540) < 60) K.over(); } cars = cars.filter(cc => cc.y < 720); },
+      draw(c) { c.fillStyle = '#3b3f4a'; c.fillRect(0, 0, K.W, K.H); c.fillStyle = '#5fae3a'; c.fillRect(0, 0, 30, K.H); c.fillRect(450, 0, 30, K.H);
+        c.fillStyle = '#fff'; for (let y = (d % 60) - 60; y < K.H; y += 60) { c.fillRect(168, y, 6, 34); c.fillRect(308, y, 6, 34); }
+        cars.forEach(cc => { c.save(); c.translate(L[cc.l], cc.y); c.rotate(Math.PI / 2); K.txt(c, cc.e, 0, 0, 56); c.restore(); });
+        c.save(); c.translate(x, 540); c.rotate(-Math.PI / 2); K.txt(c, '🏎️', 0, 0, 58); c.restore(); }
+    };
+  } });
+
+// 18 Ballon-Platzer
+reg({ id: 'balloon', name: 'Ballon-Platzer', em: '🎈', col: ['#ff8fab', '#ff4d6d'], cat: 'Geschick', desc: 'Lass keine Ballons entkommen! 5 dürfen davonfliegen.',
+  make(K) {
+    let bs = [], t = 0, miss = 0, pops = [];
+    return {
+      down(x, y) { for (let i = bs.length - 1; i >= 0; i--) { const b = bs[i]; if (Math.hypot(b.x - x, b.y - y) < 40) { pops.push({ x: b.x, y: b.y, t: 0.3 }); bs.splice(i, 1); K.add(1); K.sfx(K.rnd(500, 900)); return; } } },
+      update(dt) { t -= dt; if (t <= 0) { t = Math.max(0.3, 0.9 - K.sc() * 0.01); bs.push({ x: K.rnd(40, 440), y: 690, v: K.rnd(90, 150) + K.sc() * 2, c: `hsl(${K.ri(0, 360)},85%,60%)` }); }
+        bs.forEach(b => b.y -= b.v * dt); const before = bs.length; bs = bs.filter(b => b.y > -60); miss += before - bs.length; if (miss >= 5) K.over();
+        pops.forEach(p => p.t -= dt); pops = pops.filter(p => p.t > 0); },
+      draw(c) { bg(c, K, '#a0e7ff', '#e6f9ff'); bs.forEach(b => { c.strokeStyle = '#888'; c.beginPath(); c.moveTo(b.x, b.y + 40); c.lineTo(b.x, b.y + 80); c.stroke(); c.fillStyle = b.c; c.beginPath(); c.ellipse(b.x, b.y, 30, 38, 0, 0, 7); c.fill(); c.fillStyle = '#ffffff88'; c.beginPath(); c.ellipse(b.x - 10, b.y - 12, 7, 11, -0.4, 0, 7); c.fill(); });
+        pops.forEach(p => K.txt(c, '💥', p.x, p.y, 40)); K.txt(c, 'Entkommen: ' + miss + '/5', K.W / 2, 30, 20, '#335'); }
+    };
+  } });
+
+// 19 Obst-Fänger
+reg({ id: 'catch', name: 'Obst-Fänger', em: '🍓', col: ['#ffd36b', '#4caf50'], cat: 'Geschick', desc: 'Fang das Obst mit dem Korb – aber keine Bomben!',
+  make(K) {
+    let x = 240, fs = [], t = 0, lives = 3; const F = ['🍎', '🍌', '🍓', '🍇', '🍉', '🍒'];
+    return {
+      move(px) { x = px; }, down(px) { x = px; },
+      update(dt) { if (K.keys.ArrowLeft) x -= 400 * dt; if (K.keys.ArrowRight) x += 400 * dt; x = Math.max(40, Math.min(440, x));
+        t -= dt; if (t <= 0) { t = Math.max(0.35, 0.9 - K.sc() * 0.01); fs.push({ x: K.rnd(30, 450), y: -30, v: K.rnd(160, 240) + K.sc() * 3, b: Math.random() < 0.2 }); }
+        for (const f of fs) { f.y += f.v * dt; if (!f.d && f.y > 560 && f.y < 600 && Math.abs(f.x - x) < 50) { f.d = 1; if (f.b) { lives--; K.sfx(150); if (!lives) K.over(); } else { K.add(1); K.sfx(800); } }
+          if (!f.d && f.y > 660) { f.d = 1; if (!f.b) { lives--; if (!lives) K.over(); } } }
+        fs = fs.filter(f => !f.d); },
+      draw(c) { bg(c, K, '#fff3c4', '#c8f0a0'); fs.forEach(f => { f.e = f.e || (f.b ? '💣' : F[K.ri(0, 5)]); K.txt(c, f.e, f.x, f.y, 40); }); K.txt(c, '🧺', x, 590, 70); K.txt(c, '❤️'.repeat(lives), 60, 30, 18); }
+    };
+  } });
+
+// 20 Labyrinth
+reg({ id: 'maze', name: 'Irrgarten', em: '🌀', col: ['#9be15d', '#00b09b'], cat: 'Denken', desc: 'Finde den Weg zur Fahne! So viele Labyrinthe wie möglich in 90 s.',
+  make(K) {
+    let N, S, w, p, time = 90, lvl = 0;
+    function gen() { N = 6 + lvl * 2; if (N > 18) N = 18; S = 440 / N; w = Array.from({ length: N * N }, () => [1, 1, 1, 1]); const v = new Set([0]), st = [0];
+      while (st.length) { const i = st[st.length - 1], x = i % N, y = Math.floor(i / N); const nb = [[0, -1, 0, 2], [1, 0, 1, 3], [0, 1, 2, 0], [-1, 0, 3, 1]].filter(([dx, dy]) => { const a = x + dx, b = y + dy; return a >= 0 && b >= 0 && a < N && b < N && !v.has(b * N + a); });
+        if (!nb.length) { st.pop(); continue; } const [dx, dy, wa, wb] = nb[K.ri(0, nb.length - 1)], j = (y + dy) * N + x + dx; w[i][wa] = 0; w[j][wb] = 0; v.add(j); st.push(j); } p = 0; }
+    gen();
+    function mv(d) { const k = { up: 0, right: 1, down: 2, left: 3 }[d]; if (w[p][k]) return; p += [-N, 1, N, -1][k]; K.sfx(400); if (p === N * N - 1) { K.add(1); lvl++; gen(); } }
+    return { key(k) { if (KDIR[k]) mv(KDIR[k]); }, swipe: mv,
+      update(dt) { time -= dt; if (time <= 0) K.over(); },
+      draw(c) { c.fillStyle = '#f2fff0'; c.fillRect(0, 0, K.W, K.H); K.txt(c, '⏱ ' + Math.ceil(time) + '   Wischen oder Pfeiltasten', K.W / 2, 50, 20, '#205');
+        c.strokeStyle = '#00796b'; c.lineWidth = 4; c.lineCap = 'round'; const ox = 20, oy = 120;
+        w.forEach((q, i) => { const x = ox + (i % N) * S, y = oy + Math.floor(i / N) * S; c.beginPath(); if (q[0]) { c.moveTo(x, y); c.lineTo(x + S, y); } if (q[1]) { c.moveTo(x + S, y); c.lineTo(x + S, y + S); } if (q[2]) { c.moveTo(x, y + S); c.lineTo(x + S, y + S); } if (q[3]) { c.moveTo(x, y); c.lineTo(x, y + S); } c.stroke(); });
+        K.txt(c, '🚩', ox + (N - 0.5) * S, oy + (N - 0.5) * S, S * 0.7); c.fillStyle = '#ff4d6d'; c.beginPath(); c.arc(ox + (p % N + 0.5) * S, oy + (Math.floor(p / N) + 0.5) * S, S * 0.3, 0, 7); c.fill(); }
+    };
+  } });
+
+// 21 Block-Regen
+reg({ id: 'blocks', name: 'Block-Regen', em: '🟦', col: ['#5b6cff', '#ff6b9d'], cat: 'Klassiker', desc: 'Fülle Reihen mit fallenden Blöcken. Tippe links/rechts zum Schieben, Mitte zum Drehen, nach unten wischen zum Fallen.',
+  make(K) {
+    const C = 10, R = 20, S = 28, ox = 100, oy = 50; const g = Array(C * R).fill(0);
+    const SH = [[[0, 0], [1, 0], [2, 0], [3, 0]], [[0, 0], [1, 0], [0, 1], [1, 1]], [[0, 0], [1, 0], [2, 0], [1, 1]], [[0, 0], [1, 0], [2, 0], [2, 1]], [[0, 0], [1, 0], [2, 0], [0, 1]], [[1, 0], [2, 0], [0, 1], [1, 1]], [[0, 0], [1, 0], [1, 1], [2, 1]]];
+    const COL = ['#4dd0e1', '#ffd23f', '#b06bff', '#ff9d1a', '#2f7bff', '#3cc84a', '#ff4d4d'];
+    let pc, t = 0, sp = 0.6, lines = 0;
+    function np() { const k = K.ri(0, 6); pc = { b: SH[k].map(q => q.slice()), x: 3, y: 0, c: k + 1 }; if (!ok(pc.b, pc.x, pc.y)) K.over(); }
+    const ok = (b, x, y) => b.every(([a, c]) => { const X = a + x, Y = c + y; return X >= 0 && X < C && Y < R && (Y < 0 || !g[Y * C + X]); });
+    function lock() { pc.b.forEach(([a, c]) => { if (c + pc.y >= 0) g[(c + pc.y) * C + a + pc.x] = pc.c; }); let n = 0;
+      for (let y = R - 1; y >= 0; y--) if (g.slice(y * C, y * C + C).every(Boolean)) { g.splice(y * C, C); g.unshift(...Array(C).fill(0)); n++; y++; }
+      if (n) { lines += n; K.add([0, 100, 300, 500, 800][n]); K.sfx(900); sp = Math.max(0.12, 0.6 - lines * 0.02); } np(); }
+    const mvx = d => { if (ok(pc.b, pc.x + d, pc.y)) pc.x += d; };
+    const rot = () => { const b = pc.b.map(([a, c]) => [2 - c, a]); for (const k of [0, -1, 1, -2, 2]) if (ok(b, pc.x + k, pc.y)) { pc.b = b; pc.x += k; return; } };
+    const drop = () => { while (ok(pc.b, pc.x, pc.y + 1)) pc.y++; lock(); };
+    np();
+    return {
+      key(k) { if (k === 'ArrowLeft') mvx(-1); if (k === 'ArrowRight') mvx(1); if (k === 'ArrowUp') rot(); if (k === 'ArrowDown') { if (ok(pc.b, pc.x, pc.y + 1)) pc.y++; } if (k === 'Space') drop(); },
+      tap(x) { if (x < 160) mvx(-1); else if (x > 320) mvx(1); else rot(); }, swipe(d) { if (d === 'down') drop(); else if (d === 'left') mvx(-1); else if (d === 'right') mvx(1); else rot(); },
+      update(dt) { t += dt; if (t > sp) { t = 0; if (ok(pc.b, pc.x, pc.y + 1)) pc.y++; else lock(); } },
+      draw(c) { c.fillStyle = '#1a1c2c'; c.fillRect(0, 0, K.W, K.H); c.fillStyle = '#262a40'; c.fillRect(ox, oy, C * S, R * S);
+        const cell = (x, y, v) => { c.fillStyle = COL[v - 1]; rrect(c, ox + x * S + 1, oy + y * S + 1, S - 2, S - 2, 5); c.fill(); };
+        g.forEach((v, i) => v && cell(i % C, Math.floor(i / C), v)); pc.b.forEach(([a, b]) => b + pc.y >= 0 && cell(a + pc.x, b + pc.y, pc.c));
+        K.txt(c, 'Reihen: ' + lines, K.W / 2, 25, 20, '#fff'); }
+    };
+  } });
+
+// 22 Rechen-Blitz
+reg({ id: 'math', name: 'Rechen-Blitz', em: '➕', col: ['#00c6ff', '#0072ff'], cat: 'Denken', desc: 'Löse so viele Aufgaben wie möglich in 45 Sekunden!',
+  make(K) {
+    let q, ans, opts, time = 45, fl = 0, fc = '';
+    function nq() { const lvl = K.sc(); const op = K.ri(0, lvl > 8 ? 2 : 1); let a, b;
+      if (op === 0) { a = K.ri(1, 10 + lvl * 3); b = K.ri(1, 10 + lvl * 3); ans = a + b; q = a + ' + ' + b; } else if (op === 1) { a = K.ri(5, 20 + lvl * 3); b = K.ri(1, a); ans = a - b; q = a + ' − ' + b; } else { a = K.ri(2, 10); b = K.ri(2, 10); ans = a * b; q = a + ' × ' + b; }
+      const s = new Set([ans]); while (s.size < 4) s.add(Math.max(0, ans + K.ri(-6, 6))); opts = [...s].sort(() => Math.random() - .5); }
+    nq(); const B = [0, 1, 2, 3].map(i => ({ x: 30 + (i % 2) * 220, y: 330 + Math.floor(i / 2) * 120, w: 200, h: 100 }));
+    return {
+      down(x, y) { B.forEach((b, i) => { if (hit(b, x, y)) { if (opts[i] === ans) { K.add(1); fc = '#c8f7c5'; K.sfx(800); } else { time -= 3; fc = '#ffd6d6'; K.sfx(150); } fl = 0.25; nq(); } }); },
+      update(dt) { time -= dt; fl -= dt; if (time <= 0) K.over(); },
+      draw(c) { c.fillStyle = fl > 0 ? fc : '#eaf6ff'; c.fillRect(0, 0, K.W, K.H); K.txt(c, '⏱ ' + Math.ceil(time), K.W / 2, 70, 30, '#0b3a6e');
+        K.txt(c, q + ' = ?', K.W / 2, 210, 60, '#0b3a6e'); B.forEach((b, i) => btn(c, K, b, opts[i], '#0072ff', 40)); }
+    };
+  } });
+
+// 23 Hoch-Hüpfer
+reg({ id: 'jumper', name: 'Wolken-Hüpfer', em: '☁️', col: ['#a1c4fd', '#c2e9fb'], cat: 'Action', desc: 'Hüpfe immer höher von Wolke zu Wolke! Finger oder Pfeiltasten.',
+  make(K) {
+    let x = 240, y = 500, vy = -600, pl = [], cam = 0, tx = 240, hi = 0;
+    for (let i = 0; i < 10; i++) pl.push({ x: K.rnd(20, 380), y: 600 - i * 70 });
+    pl[0].x = 190;
+    return {
+      move(px) { tx = px; }, down(px) { tx = px; },
+      update(dt) { if (K.keys.ArrowLeft) tx = x - 60; else if (K.keys.ArrowRight) tx = x + 60;
+        x += (tx - x) * Math.min(1, dt * 8); if (x < -20) x = K.W + 20; if (x > K.W + 20) x = -20;
+        vy += 1300 * dt; const ny = y + vy * dt;
+        if (vy > 0) for (const p of pl) if (x > p.x - 10 && x < p.x + 90 && y <= p.y && ny >= p.y) { vy = -720; K.sfx(600); }
+        y = ny; if (y < cam + 250) cam = y - 250; hi = Math.max(hi, Math.floor(-(y - 500) / 10)); K.score(hi);
+        pl = pl.filter(p => p.y < cam + 700); while (pl.length < 10) { const top = Math.min(...pl.map(p => p.y)); pl.push({ x: K.rnd(10, 390), y: top - K.rnd(60, 110 + Math.min(40, hi / 20)) }); }
+        if (y > cam + 700) K.over(); },
+      draw(c) { bg(c, K, '#a1c4fd', '#e8f6ff'); pl.forEach(p => { c.fillStyle = '#fff'; const yy = p.y - cam; c.beginPath(); c.arc(p.x + 20, yy + 6, 16, 0, 7); c.arc(p.x + 45, yy, 20, 0, 7); c.arc(p.x + 70, yy + 6, 16, 0, 7); c.fill(); });
+        K.txt(c, '🐸', x, y - cam - 22, 44); }
+    };
+  } });
+
+// 24 Zahlen-Jagd
+reg({ id: 'numbers', name: 'Zahlen-Jagd', em: '🔟', col: ['#f6d365', '#fda085'], cat: 'Geschick', desc: 'Tippe die Zahlen 1 bis 25 so schnell wie möglich der Reihe nach!',
+  make(K) {
+    const n = Array.from({ length: 25 }, (_, i) => i + 1).sort(() => Math.random() - .5); let next = 1, t = 0, fl = -1;
+    return {
+      down(x, y) { const i = Math.floor((x - 15) / 90), j = Math.floor((y - 150) / 90); if (i < 0 || i > 4 || j < 0 || j > 4) return; const k = j * 5 + i;
+        if (n[k] === next) { next++; K.sfx(400 + next * 20); if (next > 25) { K.score(Math.max(1, Math.round(1000 - t * 15))); K.over(); } } else { fl = k; t += 1; } },
+      update(dt) { t += dt; },
+      draw(c) { bg(c, K, '#fff6e5', '#ffe0cc'); K.txt(c, 'Finde: ' + Math.min(25, next) + '    ⏱ ' + t.toFixed(1) + 's', K.W / 2, 90, 28, '#a0522d');
+        n.forEach((v, k) => { const x = 15 + (k % 5) * 90, y = 150 + Math.floor(k / 5) * 90; c.fillStyle = v < next ? '#d9f7d2' : k === fl ? '#ffb3b3' : '#fff'; rrect(c, x + 3, y + 3, 84, 84, 14); c.fill(); if (v >= next) K.txt(c, v, x + 45, y + 47, 34, '#a0522d'); }); }
+    };
+  } });
+
+// 25 Lampen aus
+reg({ id: 'lights', name: 'Lichter aus', em: '💡', col: ['#434343', '#ffd23f'], cat: 'Denken', desc: 'Ein Tipp schaltet ein Licht und seine Nachbarn um. Mach alle Lichter aus!',
+  make(K) {
+    let g, lvl = 0, moves = 0;
+    const tog = (g, i) => { const x = i % 5, y = Math.floor(i / 5); [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { if (x + a >= 0 && x + a < 5 && y + b >= 0 && y + b < 5) g[(y + b) * 5 + x + a] ^= 1; }); };
+    function gen() { g = Array(25).fill(0); for (let k = 0; k < 3 + lvl * 2; k++) tog(g, K.ri(0, 24)); if (g.every(v => !v)) tog(g, 12); moves = 0; }
+    gen();
+    return {
+      down(x, y) { const i = Math.floor((x - 30) / 84), j = Math.floor((y - 170) / 84); if (i < 0 || i > 4 || j < 0 || j > 4) return; tog(g, j * 5 + i); moves++; K.sfx(500);
+        if (g.every(v => !v)) { K.add(10); lvl++; setTimeout(gen, 400); } },
+      update() { },
+      draw(c) { c.fillStyle = '#1f2029'; c.fillRect(0, 0, K.W, K.H); K.txt(c, 'Rätsel ' + (lvl + 1) + '   Züge: ' + moves, K.W / 2, 100, 26, '#fff');
+        g.forEach((v, k) => { c.fillStyle = v ? '#ffd23f' : '#3a3c4a'; if (v) { c.shadowColor = '#ffd23f'; c.shadowBlur = 20; } rrect(c, 34 + (k % 5) * 84, 174 + Math.floor(k / 5) * 84, 76, 76, 14); c.fill(); c.shadowBlur = 0; });
+        K.txt(c, 'Tipp: Hängst du fest? ↻ oben startet neu', K.W / 2, 610, 16, '#aaa'); }
+    };
+  } });
+
+// 26 Torwart
+reg({ id: 'goal', name: 'Elfmeter-Held', em: '⚽', col: ['#56ab2f', '#a8e063'], cat: 'Action', desc: 'Du bist der Torwart! Halte die Bälle. 3 Gegentore und es ist vorbei.',
+  make(K) {
+    let gx = 240, balls = [], t = 1, goals = 0;
+    return {
+      move(x) { gx = x; }, down(x) { gx = x; },
+      update(dt) { if (K.keys.ArrowLeft) gx -= 420 * dt; if (K.keys.ArrowRight) gx += 420 * dt; gx = Math.max(70, Math.min(410, gx));
+        t -= dt; if (t <= 0) { t = Math.max(0.6, 1.4 - K.sc() * 0.03); const tx = K.rnd(70, 410); balls.push({ x: 240, y: 620, tx, s: 0, v: 0.8 + K.sc() * 0.03 }); }
+        for (const b of balls) { b.s += dt * b.v; b.x = 240 + (b.tx - 240) * b.s; b.y = 620 - 480 * b.s;
+          if (!b.d && b.s >= 1) { b.d = 1; if (Math.abs(b.x - gx) < 60) { K.add(1); K.sfx(700); } else { goals++; K.sfx(150); if (goals >= 3) K.over(); } } }
+        balls = balls.filter(b => !b.d); },
+      draw(c) { bg(c, K, '#7ccf5a', '#4caf50'); c.strokeStyle = '#fff'; c.lineWidth = 6; c.strokeRect(50, 90, 380, 120); c.lineWidth = 1; for (let x = 50; x < 430; x += 20) { c.beginPath(); c.moveTo(x, 90); c.lineTo(x, 210); c.stroke(); }
+        balls.forEach(b => K.txt(c, '⚽', b.x, b.y, 50 - b.s * 18)); K.txt(c, '🧤', gx - 30, 160, 44); K.txt(c, '🧤', gx + 30, 160, 44);
+        K.txt(c, 'Gegentore: ' + goals + '/3', K.W / 2, 50, 22, '#fff'); }
+    };
+  } });
+
+// 27 Wort-Tipper (Tastatur) -> Buchstaben-Regen mit Buttons
+reg({ id: 'bubbles', name: 'Blasen-Kette', em: '🫧', col: ['#89f7fe', '#66a6ff'], cat: 'Denken', desc: 'Tippe Gruppen von 2+ gleichfarbigen Blasen. Große Gruppen = viele Punkte!',
+  make(K) {
+    const C = 8, R = 10, S = 56, ox = 16, oy = 60, CO = ['#ff4d6d', '#ffd23f', '#3cc84a', '#2f7bff', '#b06bff']; let g = [];
+    for (let i = 0; i < C * R; i++) g.push(K.ri(1, 4));
+    const grp = i => { const v = g[i], s = [i], seen = new Set([i]); for (let k = 0; k < s.length; k++) { const x = s[k] % C, y = Math.floor(s[k] / C); for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const X = x + a, Y = y + b, j = Y * C + X; if (X >= 0 && X < C && Y >= 0 && Y < R && !seen.has(j) && g[j] === v) { seen.add(j); s.push(j); } } } return s; };
+    function fall() { for (let x = 0; x < C; x++) { const col = []; for (let y = R - 1; y >= 0; y--) if (g[y * C + x]) col.push(g[y * C + x]); for (let y = R - 1, k = 0; y >= 0; y--, k++) g[y * C + x] = col[k] || 0; }
+      const cols = []; for (let x = 0; x < C; x++) if (g.some((v, i) => i % C === x && v)) cols.push(x); const ng = Array(C * R).fill(0); cols.forEach((x, k) => { for (let y = 0; y < R; y++) ng[y * C + k] = g[y * C + x]; }); g = ng; }
+    const anyMove = () => g.some((v, i) => v && ((i % C < C - 1 && g[i + 1] === v) || (i < (R - 1) * C && g[i + C] === v)));
+    return {
+      down(x, y) { const i = Math.floor((x - ox) / S), j = Math.floor((y - oy) / S); if (i < 0 || i >= C || j < 0 || j >= R) return; const k = j * C + i; if (!g[k]) return; const s = grp(k); if (s.length < 2) return;
+        s.forEach(q => g[q] = 0); K.add(s.length * (s.length - 1)); K.sfx(300 + s.length * 40); fall(); if (!anyMove()) { if (g.every(v => !v)) K.add(200); setTimeout(K.over, 500); } },
+      update() { },
+      draw(c) { bg(c, K, '#e0f7ff', '#c2e0ff'); g.forEach((v, k) => { if (!v) return; const x = ox + (k % C) * S + S / 2, y = oy + Math.floor(k / C) * S + S / 2; c.fillStyle = CO[v - 1]; c.beginPath(); c.arc(x, y, S / 2 - 3, 0, 7); c.fill(); c.fillStyle = '#ffffff77'; c.beginPath(); c.arc(x - 8, y - 8, 7, 0, 7); c.fill(); }); }
+    };
+  } });
+
+// 28 Kanonen-Korb
+reg({ id: 'hoop', name: 'Korbwurf', em: '🏀', col: ['#ff9d1a', '#c2410c'], cat: 'Geschick', desc: 'Ziehe zurück und lass los, um den Ball in den Korb zu werfen!',
+  make(K) {
+    let ball, drag = null, hx = 340, hy = 200, shots = 10, msg = ''; const reset = () => { ball = { x: 100, y: 520, vx: 0, vy: 0, fly: false, sc: false }; hx = K.rnd(260, 400); hy = K.rnd(150, 300); };
+    reset();
+    return {
+      down(x, y) { if (!ball.fly) drag = [x, y, x, y]; }, move(x, y) { if (drag) { drag[2] = x; drag[3] = y; } },
+      up() { if (!drag) return; ball.vx = (drag[0] - drag[2]) * 4.5; ball.vy = (drag[1] - drag[3]) * 4.5; ball.fly = true; drag = null; shots--; },
+      update(dt) { if (!ball.fly) return; ball.vy += 900 * dt; const py = ball.y; ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+        if (!ball.sc && py < hy && ball.y >= hy && ball.x > hx - 30 && ball.x < hx + 30) { ball.sc = true; K.add(1); K.sfx(900); msg = 'TREFFER!'; }
+        if (Math.hypot(ball.x - (hx - 36), ball.y - hy) < 16 || Math.hypot(ball.x - (hx + 36), ball.y - hy) < 16) ball.vx *= -0.6;
+        if (ball.y > 700 || ball.x > 520 || ball.x < -40) { if (!ball.sc) msg = 'Daneben'; if (shots <= 0) K.over(); else reset(); setTimeout(() => msg = '', 700); } },
+      draw(c) { bg(c, K, '#ffe8cc', '#fff'); c.fillStyle = '#c9a26b'; c.fillRect(0, 560, K.W, 80);
+        c.fillStyle = '#fff'; c.fillRect(hx + 30, hy - 80, 10, 120); c.strokeStyle = '#e8322b'; c.lineWidth = 5; c.beginPath(); c.moveTo(hx - 36, hy); c.lineTo(hx + 36, hy); c.stroke();
+        c.strokeStyle = '#ccc'; c.lineWidth = 2; for (let k = -30; k <= 30; k += 15) { c.beginPath(); c.moveTo(hx + k, hy); c.lineTo(hx + k * 0.6, hy + 40); c.stroke(); }
+        if (drag) { c.strokeStyle = '#0005'; c.setLineDash([6, 6]); c.beginPath(); c.moveTo(ball.x, ball.y); c.lineTo(ball.x + (drag[0] - drag[2]), ball.y + (drag[1] - drag[3])); c.stroke(); c.setLineDash([]); }
+        K.txt(c, '🏀', ball.x, ball.y, 40); K.txt(c, 'Würfe übrig: ' + shots, K.W / 2, 40, 22, '#a0522d'); K.txt(c, msg, K.W / 2, 100, 40, '#e8322b'); }
+    };
+  } });
+
+// 29 Sternen-Sammler (Ausweichen im Kreis)
+reg({ id: 'orbit', name: 'Kreisel-Kugel', em: '🪐', col: ['#2b1055', '#7597de'], cat: 'Action', desc: 'Tippe, um die Richtung zu wechseln. Sammle Sterne, weiche den Stacheln aus!',
+  make(K) {
+    let a = 0, dir = 1, sp = 2.2, items = [], t = 0; const cx = 240, cy = 340, R = 130;
+    return {
+      down() { dir *= -1; K.sfx(500); }, key(k) { if (k === 'Space') { dir *= -1; } },
+      update(dt) { a += dir * sp * dt; sp += 0.02 * dt; t -= dt;
+        if (t <= 0) { t = 0.9; items.push({ a: a + K.rnd(1.5, 4.7) * (Math.random() < .5 ? 1 : -1), b: Math.random() < 0.6, life: 4 }); }
+        const px = cx + Math.cos(a) * R, py = cy + Math.sin(a) * R;
+        for (const it of items) { it.life -= dt; const x = cx + Math.cos(it.a) * R, y = cy + Math.sin(it.a) * R; if (!it.d && Math.hypot(px - x, py - y) < 28) { it.d = 1; if (it.b) { K.add(1); K.sfx(900); } else K.over(); } }
+        items = items.filter(i => !i.d && i.life > 0); },
+      draw(c) { bg(c, K, '#2b1055', '#7597de'); c.strokeStyle = '#ffffff55'; c.lineWidth = 3; c.beginPath(); c.arc(cx, cy, R, 0, 7); c.stroke();
+        items.forEach(i => K.txt(c, i.b ? '⭐' : '🌵', cx + Math.cos(i.a) * R, cy + Math.sin(i.a) * R, 32));
+        c.fillStyle = '#ff6fb5'; c.beginPath(); c.arc(cx + Math.cos(a) * R, cy + Math.sin(a) * R, 16, 0, 7); c.fill(); K.txt(c, '🪐', cx, cy, 60); }
+    };
+  } });
+
+// 30 Gleiche Emojis (Unterschied finden)
+reg({ id: 'odd', name: 'Finde den Unterschied', em: '🔍', col: ['#fbc2eb', '#a6c1ee'], cat: 'Denken', desc: 'Ein Emoji ist anders! Finde es so schnell du kannst. 40 Sekunden.',
+  make(K) {
+    const P = [['😀', '😃'], ['🐶', '🐕'], ['🍎', '🍅'], ['⭐', '🌟'], ['🌲', '🌳'], ['🙂', '🙃'], ['🐱', '🐈'], ['🌑', '🌚'], ['🚗', '🚙'], ['💙', '💜']]; let n, odd, pair, time = 40;
+    function nr() { n = Math.min(8, 3 + Math.floor(K.sc() / 3)); odd = K.ri(0, n * n - 1); pair = P[K.ri(0, P.length - 1)]; }
+    nr();
+    return {
+      down(x, y) { const S = 440 / n, i = Math.floor((x - 20) / S), j = Math.floor((y - 140) / S); if (i < 0 || i >= n || j < 0 || j >= n) return; if (j * n + i === odd) { K.add(1); K.sfx(800); nr(); } else { time -= 3; K.sfx(150); } },
+      update(dt) { time -= dt; if (time <= 0) K.over(); },
+      draw(c) { bg(c, K, '#fbe3f5', '#e3ecff'); K.txt(c, '⏱ ' + Math.ceil(time), K.W / 2, 80, 30, '#553'); const S = 440 / n;
+        for (let k = 0; k < n * n; k++) K.txt(c, k === odd ? pair[1] : pair[0], 20 + (k % n + 0.5) * S, 140 + (Math.floor(k / n) + 0.5) * S, S * 0.7); }
+    };
+  } });
+
+(function () {
+const $ = s => document.querySelector(s);
+const KEY = 'vallesSpielewelt1';
+let D; try { D = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { D = {}; }
+D = Object.assign({ best: {}, plays: {}, recent: [], fav: [] }, D);
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch (e) { } };
+const byId = id => GAMES.find(g => g.id === id);
+
+// ---------- Portal ----------
+const CATS = ['Alle', '❤️ Favoriten', 'Action', 'Geschick', 'Denken', 'Klassiker'];
+let cat = 'Alle', q = '';
+function tile(g, big) {
+  const b = document.createElement('button'); b.className = 'tile' + (big ? ' big' : '');
+  b.style.background = `linear-gradient(135deg,${g.col[0]},${g.col[1]})`;
+  b.innerHTML = `<div class="em">${g.em}</div><div class="nm">${g.name}</div>` + (D.best[g.id] ? `<div class="bs">🏆 ${D.best[g.id]}</div>` : '') + (D.fav.includes(g.id) ? '<div class="fav">❤️</div>' : !D.plays[g.id] ? '<div class="new">NEU</div>' : '');
+  b.onclick = () => open(g.id); return b;
+}
+function renderPortal() {
+  $('#cats').innerHTML = ''; CATS.forEach(c => { const b = document.createElement('button'); b.className = 'cat' + (c === cat ? ' on' : ''); b.textContent = c; b.onclick = () => { cat = c; renderPortal(); }; $('#cats').appendChild(b); });
+  const rec = D.recent.map(byId).filter(Boolean);
+  $('#recentWrap').classList.toggle('hide', !rec.length || cat !== 'Alle' || !!q);
+  $('#recent').innerHTML = ''; rec.slice(0, 8).forEach(g => $('#recent').appendChild(tile(g)));
+  let list = GAMES.filter(g => (cat === 'Alle' || g.cat === cat || (cat === '❤️ Favoriten' && D.fav.includes(g.id))) && (!q || (g.name + ' ' + g.desc + ' ' + g.cat).toLowerCase().includes(q)));
+  $('#gridTitle').textContent = q ? '🔍 Suche: ' + q : cat === 'Alle' ? '🔥 Alle Spiele (' + GAMES.length + ')' : cat;
+  $('#grid').innerHTML = ''; list.forEach((g, i) => $('#grid').appendChild(tile(g, cat === 'Alle' && !q && i % 7 === 0)));
+  if (!list.length) $('#grid').innerHTML = '<div class="empty">' + (cat === '❤️ Favoriten' ? 'Noch keine Favoriten – tippe im Spiel auf 🤍' : 'Nichts gefunden 😕') + '</div>';
+  const tot = Object.values(D.plays).reduce((a, b) => a + b, 0); $('#stat').textContent = '🎮 ' + tot + ' Runden';
+}
+$('#search').oninput = e => { q = e.target.value.trim().toLowerCase(); renderPortal(); };
+$('#home').onclick = () => { cat = 'Alle'; q = ''; $('#search').value = ''; renderPortal(); };
+
+// ---------- Spiel-Rahmen ----------
+const cv = $('#gc'), ctx = cv.getContext('2d'); const W = 480, H = 640;
+let cur = null, inst = null, state = 'idle', score = 0, gid = 0;
+const keys = {};
+let AC = null;
+function sfx(f) { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); const o = AC.createOscillator(), gn = AC.createGain(); o.type = 'square'; o.frequency.value = f; gn.gain.setValueAtTime(0.05, AC.currentTime); gn.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + 0.12); o.connect(gn); gn.connect(AC.destination); o.start(); o.stop(AC.currentTime + 0.12); } catch (e) { } }
+function mkK(id) {
+  return { W, H, keys,
+    score(n) { if (id === gid && state === 'play') { score = n; $('#psc').textContent = score; } },
+    add(n) { if (id === gid && state === 'play') { score += n; $('#psc').textContent = score; } },
+    sc: () => score,
+    over() { if (id === gid && state === 'play') gameOver(); },
+    rnd: (a, b) => a + Math.random() * (b - a), ri: (a, b) => Math.floor(a + Math.random() * (b - a + 1)),
+    sfx(f) { if (id === gid) sfx(f); },
+    txt(c, s, x, y, size, col) { c.font = `700 ${size}px Fredoka, 'Trebuchet MS', sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = col || '#000'; c.fillText(s, x, y); } };
+}
+function fit() { const st = $('#stage').getBoundingClientRect(); const s = Math.min((st.width - 16) / W, (st.height - 16) / H); cv.style.width = W * s + 'px'; cv.style.height = H * s + 'px'; }
+window.addEventListener('resize', () => cur && fit());
+function open(id) {
+  cur = byId(id); D.recent = [id].concat(D.recent.filter(x => x !== id)).slice(0, 8); save();
+  $('#play').classList.remove('hide'); $('#pt').textContent = cur.em + ' ' + cur.name; $('#pbest').textContent = D.best[id] || 0;
+  $('#pfav').textContent = D.fav.includes(id) ? '❤️' : '🤍';
+  fit(); newInst(); state = 'start';
+  card(`<div class="big">${cur.em}</div><h2>${cur.name}</h2><p>${cur.desc}</p><button id="go">▶ Spielen</button>`);
+  $('#go').onclick = start;
+}
+function newInst() { gid++; score = 0; $('#psc').textContent = 0; inst = cur.make(mkK(gid)); }
+function card(html) { $('#card').innerHTML = html; $('#ov').classList.remove('hide'); }
+function start() { sfx(600); newInst(); state = 'play'; $('#ov').classList.add('hide'); D.plays[cur.id] = (D.plays[cur.id] || 0) + 1; save(); }
+function gameOver() {
+  state = 'over'; const best = D.best[cur.id] || 0, rec = score > best; if (rec) { D.best[cur.id] = score; save(); }
+  $('#pbest').textContent = D.best[cur.id] || 0;
+  const others = GAMES.filter(g => g.id !== cur.id).sort(() => Math.random() - .5).slice(0, 4);
+  card(`<div class="big">${rec && score > 0 ? '🏆' : '🎮'}</div><h2>${rec && score > 0 ? 'NEUER REKORD!' : 'Vorbei!'}</h2><div class="res">Punkte: ${score}</div>${rec && score > 0 ? '<div class="rec">Super gemacht!</div>' : `<p>Dein Rekord: ${best}</p>`}
+    <button id="again">↻ Nochmal</button><button class="b2" id="toPortal">🏠 Alle Spiele</button>
+    <p style="margin:12px 0 4px">Probier auch:</p><div class="more">${others.map(g => `<div class="mini" data-id="${g.id}" title="${g.name}" style="background:linear-gradient(135deg,${g.col[0]},${g.col[1]})">${g.em}</div>`).join('')}</div>`);
+  $('#again').onclick = start; $('#toPortal').onclick = close;
+  document.querySelectorAll('.mini').forEach(m => m.onclick = () => open(m.dataset.id));
+  sfx(rec ? 900 : 200);
+}
+function close() { state = 'idle'; cur = null; inst = null; gid++; $('#play').classList.add('hide'); renderPortal(); }
+$('#back').onclick = close;
+$('#prs').onclick = () => { if (cur) start(); };
+$('#pfav').onclick = () => { if (!cur) return; const i = D.fav.indexOf(cur.id); if (i >= 0) D.fav.splice(i, 1); else D.fav.push(cur.id); save(); $('#pfav').textContent = D.fav.includes(cur.id) ? '❤️' : '🤍'; };
+
+// Eingabe
+const P = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H]; };
+let ps = null;
+cv.addEventListener('pointerdown', e => { e.preventDefault(); if (state !== 'play') return; cv.setPointerCapture(e.pointerId); const [x, y] = P(e); ps = { x, y, t: performance.now() }; inst.down && inst.down(x, y); });
+cv.addEventListener('pointermove', e => { if (state !== 'play') return; const [x, y] = P(e); if (e.pointerType === 'mouse' || ps) inst.move && inst.move(x, y); });
+cv.addEventListener('pointerup', e => { if (state !== 'play') return; const [x, y] = P(e); inst.up && inst.up(x, y);
+  if (ps) { const dx = x - ps.x, dy = y - ps.y; if (Math.hypot(dx, dy) > 35 && inst.swipe) inst.swipe(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up')); else inst.tap && inst.tap(x, y); } ps = null; });
+window.addEventListener('keydown', e => {
+  if (!cur) return; if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+  if (state !== 'play') { if (e.code === 'Space' || e.code === 'Enter') { start(); } return; }
+  if (!keys[e.code]) inst.key && inst.key(e.code); keys[e.code] = true; });
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// Schleife
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (inst && cur) { try { if (state === 'play') inst.update(dt); inst.draw(ctx); } catch (err) { console.error(err); } }
+  requestAnimationFrame(loop);
+}
+renderPortal(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
