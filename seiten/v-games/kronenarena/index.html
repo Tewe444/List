@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Kronenarena</title>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#141c2b;font-family:system-ui,"Segoe UI",Roboto,sans-serif;color:#fff;overflow:hidden;touch-action:none}
+#app{position:relative;margin:0 auto;height:100%;display:flex;flex-direction:column;background:#0f1724}
+#top{height:44px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 10px;background:linear-gradient(#22324d,#16213a);font-weight:800}
+#top .cr{font-size:18px;min-width:70px}
+#top .cr.r{text-align:right}
+#tmBox{text-align:center;line-height:1}
+#tm{font-size:20px}
+#tmSub{font-size:11px;color:#ffd166;margin-top:2px;height:12px}
+#cv{display:block;flex:none;touch-action:none}
+#bottom{flex:1;display:flex;flex-direction:column;background:linear-gradient(#5a3a22,#3b2615);padding:6px 6px 8px;gap:6px;min-height:120px}
+#hand{flex:1;display:flex;gap:5px;align-items:stretch}
+#nextBox{width:15%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:#e8d5b5;gap:3px}
+#nextBox .card{width:100%;flex:0 0 auto;aspect-ratio:3/4;min-height:0;opacity:.85}
+#cards{flex:1;display:flex;gap:5px}
+.card{position:relative;flex:1;border-radius:8px;background:linear-gradient(#f8f0dc,#d8c49c);color:#3a2a12;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid #a07c3c;overflow:hidden;cursor:pointer;touch-action:none;transition:transform .08s}
+.card .emo{font-size:28px;line-height:1.1}
+.card .nm{font-size:10px;font-weight:700;text-align:center;line-height:1.05;padding:0 2px}
+.card .cost{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ff9bf0,#c21fb0);color:#fff;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;border:1px solid #fff8}
+.card .shade{position:absolute;left:0;right:0;top:0;background:#0009;pointer-events:none}
+.card.sel{transform:translateY(-8px);border-color:#ffd60a;box-shadow:0 0 12px #ffd60a}
+.card.pend{opacity:.4}
+#elx{position:relative;height:22px;border-radius:11px;background:#2a1240;border:2px solid #120820;overflow:hidden}
+#elfill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(#ff7ef5,#c21fb0);width:50%}
+#elgrid{position:absolute;inset:0;display:flex}
+#elgrid div{flex:1;border-right:1px solid #0005}
+#elnum{position:absolute;left:8px;top:0;bottom:0;display:flex;align-items:center;font-weight:900;font-size:14px;text-shadow:0 1px 2px #000}
+.ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(#2b3d63,#0d1424);z-index:10;padding:16px}
+.ov.dim{background:#000b}
+.panel{width:100%;max-width:400px;text-align:center;display:flex;flex-direction:column;gap:10px}
+h1{font-size:38px;letter-spacing:1px;text-shadow:0 3px 0 #0006}
+h2{font-size:26px}
+.sub{color:#b9c6e0;font-size:13px}
+.btn{font:inherit;font-weight:800;font-size:17px;padding:13px;border-radius:12px;border:none;cursor:pointer;color:#fff;background:linear-gradient(#4f8cff,#2a5fd4);box-shadow:0 4px 0 #1b3f8f}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #1b3f8f}
+.btn.y{background:linear-gradient(#ffd23f,#f0a500);color:#3a2600;box-shadow:0 4px 0 #a06c00}
+.btn.g{background:linear-gradient(#50d67a,#24a64e);box-shadow:0 4px 0 #17703a}
+.btn.gr{background:linear-gradient(#6b7489,#4a5266);box-shadow:0 4px 0 #2d3342}
+input{font:inherit;font-size:22px;font-weight:800;text-align:center;letter-spacing:4px;padding:10px;border-radius:10px;border:2px solid #4f8cff;background:#0d1424;color:#fff;text-transform:uppercase;-webkit-user-select:text;user-select:text}
+.code{font-size:44px;font-weight:900;letter-spacing:8px;color:#ffd23f;background:#0d1424;border-radius:12px;padding:8px}
+.credit{font-size:12px;color:#8b9abb;margin-top:6px}
+#deckGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+#deckGrid .card{aspect-ratio:3/4;flex:none;opacity:.45}
+#deckGrid .card.on{opacity:1;border-color:#50d67a;box-shadow:0 0 8px #50d67a}
+.hidden{display:none!important}
+#msg{color:#ff8a8a;font-size:14px;min-height:18px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="top">
+    <div class="cr" id="crMe">👑 0</div>
+    <div id="tmBox"><div id="tm">3:00</div><div id="tmSub"></div></div>
+    <div class="cr r" id="crFoe">0 👑</div>
+  </div>
+  <canvas id="cv"></canvas>
+  <div id="bottom">
+    <div id="hand">
+      <div id="nextBox"><span>Nächste</span><div id="next"></div></div>
+      <div id="cards"></div>
+    </div>
+    <div id="elx"><div id="elfill"></div><div id="elgrid"></div><span id="elnum">5</span></div>
+  </div>
+</div>
+
+<!-- Hauptmenü -->
+<div class="ov" id="menu">
+  <div class="panel">
+    <h1>👑 Kronenarena</h1>
+    <div class="sub">Zerstöre die gegnerischen Türme – 3 Minuten, 3 Kronen.</div>
+    <button class="btn y" id="bBot">⚔️ Gegen Bot spielen</button>
+    <button class="btn" id="bHost">🌐 Online: Raum erstellen</button>
+    <button class="btn" id="bJoin">🔗 Online: Raum beitreten</button>
+    <button class="btn gr" id="bDeck">🃏 Deck bearbeiten</button>
+    <div class="credit">Ideen von Valle, JavaScript von Claude.ai</div>
+  </div>
+</div>
+
+<!-- Lobby -->
+<div class="ov hidden" id="lobby">
+  <div class="panel">
+    <h2 id="lbTitle">Online</h2>
+    <div id="hostBox" class="hidden">
+      <div class="sub">Schick diesen Code deinem Gegner:</div>
+      <div class="code" id="code">-----</div>
+      <div class="sub" style="margin-top:8px">Warte auf Gegner …</div>
+    </div>
+    <div id="joinBox" class="hidden" style="display:flex;flex-direction:column;gap:10px">
+      <div class="sub">Gib den Raum-Code ein:</div>
+      <input id="codeIn" maxlength="5" placeholder="CODE">
+      <button class="btn g" id="bJoinGo">Beitreten</button>
+    </div>
+    <div id="msg"></div>
+    <button class="btn gr" id="bBack">Zurück</button>
+  </div>
+</div>
+
+<!-- Deck-Editor -->
+<div class="ov hidden" id="deckEd">
+  <div class="panel">
+    <h2>Dein Deck</h2>
+    <div class="sub" id="deckInfo">8/8 Karten</div>
+    <div id="deckGrid"></div>
+    <button class="btn g" id="bDeckOk">Speichern</button>
+  </div>
+</div>
+
+<!-- Spielende -->
+<div class="ov dim hidden" id="endOv">
+  <div class="panel">
+    <h1 id="endT">Sieg!</h1>
+    <div class="sub" id="endS" style="font-size:20px"></div>
+    <button class="btn y" id="bEnd">Zum Menü</button>
+  </div>
+</div>
+
+<script>
+//SIM-START
+// ===================== Spieldaten =====================
+const W = 18, H = 32, RT = 15, RB = 17, BR = [3.5, 14.5], BHW = 1.0, SIGHT = 5.5;
+
+const CARDS = {
+  ritter:   {name:'Ritter',       emo:'🛡️', cost:3, type:'troop', hp:1450, dmg:165, hs:1.2, range:0.6, speed:1.0, r:0.5,  tg:'ground', n:1},
+  bogen:    {name:'Bogen­schützen',emo:'🏹', cost:3, type:'troop', hp:260,  dmg:95,  hs:0.9, range:5.0, speed:1.0, r:0.4,  tg:'all',    n:2, proj:'arrow'},
+  riese:    {name:'Steinriese',   emo:'🗿', cost:5, type:'troop', hp:3400, dmg:210, hs:1.5, range:0.6, speed:0.7, r:0.85, tg:'buildings', n:1},
+  kobolde:  {name:'Kobolde',      emo:'👺', cost:2, type:'troop', hp:180,  dmg:105, hs:1.1, range:0.5, speed:1.5, r:0.35, tg:'ground', n:3},
+  skelette: {name:'Skelette',     emo:'💀', cost:1, type:'troop', hp:70,   dmg:70,  hs:1.0, range:0.5, speed:1.5, r:0.3,  tg:'ground', n:3},
+  drache:   {name:'Drache',       emo:'🐉', cost:4, type:'troop', hp:1050, dmg:135, hs:1.5, range:3.5, speed:1.5, r:0.6,  tg:'all',    n:1, fly:true, splash:1.3, proj:'fire'},
+  fleder:   {name:'Fleder­mäuse', emo:'🦇', cost:2, type:'troop', hp:80,   dmg:85,  hs:1.1, range:0.6, speed:2.0, r:0.3,  tg:'all',    n:4, fly:true},
+  bock:     {name:'Sturmbock',    emo:'🐏', cost:4, type:'troop', hp:1600, dmg:270, hs:1.6, range:0.6, speed:1.6, r:0.7,  tg:'buildings', n:1},
+  magier:   {name:'Magier',       emo:'🧙', cost:5, type:'troop', hp:620,  dmg:240, hs:1.4, range:5.5, speed:1.0, r:0.45, tg:'all',    n:1, splash:1.2, proj:'magic'},
+  kanone:   {name:'Kanone',       emo:'💣', cost:3, type:'building', hp:850, dmg:175, hs:0.9, range:5.0, r:0.9, tg:'ground', life:30, proj:'ball'},
+  feuerball:{name:'Feuerball',    emo:'☄️', cost:4, type:'spell', dmg:360, rad:2.5, delay:0.9, kb:true, fx:'#ff8a00'},
+  pfeile:   {name:'Pfeilhagel',   emo:'🎯', cost:3, type:'spell', dmg:140, rad:4.0, delay:1.0, fx:'#ffe08a'},
+  blitz:    {name:'Blitz',        emo:'⚡', cost:2, type:'spell', dmg:85,  rad:2.5, delay:0.15, stun:0.5, fx:'#7dd3fc'},
+};
+const DEFAULT_DECK = ['ritter','bogen','riese','kobolde','feuerball','pfeile','drache','kanone'];
+const TOWER = {
+  princess:{hp:2600, dmg:95,  hs:0.8, range:7.5, r:1.4, emo:'🏹'},
+  king:    {hp:4200, dmg:105, hs:1.0, range:7.0, r:1.8, emo:'👑'},
+};
+const PROJ = {arrow:{spd:14,c:'#fff3c4',r:.12}, fire:{spd:9,c:'#ff7a1a',r:.28}, magic:{spd:10,c:'#c084fc',r:.24}, ball:{spd:11,c:'#222',r:.2}};
+
+const clamp = (v,a,b) => v<a?a:v>b?b:v;
+const dist = (a,b) => Math.hypot(a.x-b.x, a.y-b.y);
+const side = y => y>RB ? 0 : (y<RT ? 1 : -1);
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+class Deck {
+  constructor(keys){ const a = shuffle(keys.slice()); this.hand = a.slice(0,4); this.q = a.slice(4); this.v = 0; }
+  play(i){ const k = this.hand[i]; this.hand[i] = this.q.shift(); this.q.push(k); this.v++; return k; }
+  get next(){ return this.q[0]; }
+}
+
+// ===================== Simulation (läuft beim Host) =====================
+function newSim(){
+  const s = {ents:[], projs:[], spells:[], nid:1, time:180, ot:false, el:[5,5], cr:[0,0], over:null, netfx:[], fxOut:null};
+  const T = [[0,'princess',3.5,25.5],[0,'princess',14.5,25.5],[0,'king',9,28.5],
+             [1,'princess',3.5,6.5],[1,'princess',14.5,6.5],[1,'king',9,3.5]];
+  for (const [o,k,x,y] of T){
+    const d = TOWER[k];
+    s.ents.push({id:s.nid++, kind:'tower', key:k, owner:o, x, y, hp:d.hp, maxHp:d.hp, r:d.r, dmg:d.dmg, hs:d.hs,
+      range:d.range, tg:'all', proj:'arrow', cd:0, active:k==='princess', dead:false, tid:0, stun:0});
+  }
+  return s;
+}
+function addFx(s,x,y,r,c,T){ const f={x:+x.toFixed(2), y:+y.toFixed(2), r, c, T}; s.netfx.push(f); if (s.fxOut) s.fxOut(f); }
+function byId(s,id){ for (const e of s.ents) if (e.id===id) return e; return null; }
+
+function towerOf(v,owner,key,lane){
+  return v.ents.find(e => e.kind==='tower' && e.owner===owner && e.key===key && (lane===undefined || (e.x<9?0:1)===lane));
+}
+function canPlace(v, owner, key, x, y){
+  if (x<0.5 || x>17.5 || y<0.5 || y>31.5) return false;
+  const c = CARDS[key];
+  if (c.type==='spell') return true;
+  if (y>RT && y<RB) return false;
+  const lane = x<9 ? 0 : 1;
+  const pt = towerOf(v, 1-owner, 'princess', lane);
+  const pocket = pt && pt.dead;
+  const ok = owner===0 ? (y>=RB+0.5 || (pocket && y>=10)) : (y<=RT-0.5 || (pocket && y<=22));
+  if (!ok) return false;
+  for (const e of v.ents) if (e.kind==='tower' && !e.dead && Math.abs(e.x-x)<e.r+0.1 && Math.abs(e.y-y)<e.r+0.1) return false;
+  return true;
+}
+function formation(n){
+  if (n===1) return [[0,0]];
+  const out = [], rad = n===2 ? 0.5 : 0.6;
+  for (let i=0;i<n;i++){ const a = i*Math.PI*2/n + Math.PI/2; out.push([Math.cos(a)*rad, Math.sin(a)*rad]); }
+  return out;
+}
+function spawn(s, owner, key, x, y){
+  const c = CARDS[key];
+  if (c.type==='spell'){
+    s.spells.push({key, owner, x, y, t:c.delay, T:c.delay, sx:9, sy: owner===0 ? 28.5 : 3.5});
+    return;
+  }
+  for (const [ox,oy] of formation(c.n)){
+    s.ents.push({id:s.nid++, kind:c.type, key, owner, x:clamp(x+ox,0.5,17.5), y:y+(owner===0?oy:-oy),
+      hp:c.hp, maxHp:c.hp, r:c.r, fly:!!c.fly, speed:c.speed||0, dmg:c.dmg, hs:c.hs, range:c.range, tg:c.tg,
+      splash:c.splash||0, proj:c.proj||null, cd:0, deploy:1, life:c.life||0, tid:0, stun:0, rt:0, atk:0});
+  }
+}
+function tryPlay(s, owner, key, x, y){
+  const c = CARDS[key];
+  if (!c || s.over || s.el[owner] < c.cost) return false;
+  if (c.type!=='spell'){ x = Math.floor(x)+0.5; y = Math.floor(y)+0.5; }
+  if (!canPlace(s, owner, key, x, y)) return false;
+  s.el[owner] -= c.cost;
+  spawn(s, owner, key, x, y);
+  return true;
+}
+function canHit(e,o){
+  if (e.tg==='buildings') return o.kind!=='troop';
+  if (e.tg==='ground') return !o.fly;
+  return true;
+}
+function inRange(e,t){ return dist(e,t) - t.r - (e.kind==='tower' ? 0 : e.r) <= e.range; }
+
+function endGame(s,w){ s.over = {w}; }
+function damage(s,o,amt){
+  if (o.hp<=0) return;
+  o.hp -= amt;
+  if (o.kind==='tower' && o.key==='king') o.active = true;
+  if (o.hp<=0){
+    o.hp = 0;
+    addFx(s, o.x, o.y, o.r*1.4, '#ffffff', 0.45);
+    if (o.kind==='tower'){
+      o.dead = true;
+      const w = 1-o.owner;
+      if (o.key==='king'){ s.cr[w] = 3; endGame(s,w); }
+      else {
+        s.cr[w]++;
+        const k = towerOf(s, o.owner, 'king'); if (k) k.active = true;
+        if (s.ot) endGame(s,w);
+      }
+    }
+  }
+}
+function areaDmg(s,x,y,r,dmg,owner,tg,towerPct){
+  for (const o of s.ents){
+    if (o.owner===owner || o.hp<=0) continue;
+    if (tg==='ground' && o.fly) continue;
+    if (Math.hypot(o.x-x,o.y-y) - o.r*0.6 > r) continue;
+    damage(s, o, o.kind==='tower' ? dmg*towerPct : dmg);
+  }
+}
+function castSpell(s,sp){
+  const c = CARDS[sp.key];
+  for (const o of s.ents){
+    if (o.owner===sp.owner || o.hp<=0) continue;
+    if (Math.hypot(o.x-sp.x,o.y-sp.y) - o.r*0.6 > c.rad) continue;
+    if (c.stun) o.stun = Math.max(o.stun||0, c.stun);
+    if (c.kb && o.kind==='troop' && o.r<0.8){
+      const dx=o.x-sp.x, dy=o.y-sp.y, d=Math.hypot(dx,dy)||1;
+      o.x += dx/d*0.8; o.y += dy/d*0.8;
+    }
+    damage(s, o, o.kind==='tower' ? c.dmg*0.3 : c.dmg);
+  }
+  addFx(s, sp.x, sp.y, c.rad, c.fx, 0.5);
+}
+function troopTarget(s,e){
+  let best=null, bd=1e9;
+  for (const o of s.ents){
+    if (o.owner===e.owner || o.hp<=0 || !canHit(e,o)) continue;
+    const d = dist(e,o) - o.r;
+    if (d<=SIGHT && d<bd){ bd=d; best=o; }
+  }
+  if (best) return best;
+  const lane = e.x<9 ? 0 : 1, foe = 1-e.owner;
+  const pt = s.ents.find(o => o.kind==='tower' && o.owner===foe && o.key==='princess' && (o.x<9?0:1)===lane && o.hp>0);
+  return pt || s.ents.find(o => o.kind==='tower' && o.owner===foe && o.key==='king' && o.hp>0) || null;
+}
+function nearestInRange(s,e){
+  let best=null, bd=1e9;
+  for (const o of s.ents){
+    if (o.owner===e.owner || o.hp<=0 || !canHit(e,o) || !inRange(e,o)) continue;
+    const d = dist(e,o); if (d<bd){ bd=d; best=o; }
+  }
+  return best;
+}
+function moveToward(e,t,dt){
+  let wx=t.x, wy=t.y;
+  if (!e.fly){
+    const us = side(e.y), ts = side(t.y);
+    if (ts!==-1 && us!==ts){
+      const b = Math.abs(e.x-BR[0]) < Math.abs(e.x-BR[1]) ? BR[0] : BR[1];
+      const up = t.y < e.y;
+      const entry = up ? RB+0.3 : RT-0.3, exit = up ? RT-0.4 : RB+0.4;
+      if (us!==-1 && Math.abs(e.x-b)>0.3){ wx=b; wy=entry; } else { wx=b; wy=exit; }
+    }
+  }
+  const dx=wx-e.x, dy=wy-e.y, d=Math.hypot(dx,dy);
+  if (d<1e-3) return;
+  const st = Math.min(d, e.speed*dt);
+  e.x += dx/d*st; e.y += dy/d*st;
+}
+function attack(s,e,t){
+  e.atk = 0.15;
+  if (e.proj){
+    s.projs.push({x:e.x, y:e.y-(e.fly?0.6:0), tid:t.id, tx:t.x, ty:t.y, spd:PROJ[e.proj].spd, dmg:e.dmg,
+      splash:e.splash||0, owner:e.owner, tg:e.tg, kind:e.proj});
+  } else {
+    if (e.splash) areaDmg(s, t.x, t.y, e.splash, e.dmg, e.owner, e.tg, 1);
+    else damage(s, t, e.dmg);
+    addFx(s, (e.x+t.x)/2, (e.y+t.y)/2, 0.35, '#ffffff', 0.15);
+  }
+}
+function updateEnt(s,e,dt){
+  if (e.atk>0) e.atk -= dt;
+  if (e.deploy>0){ e.deploy -= dt; return; }
+  if (e.kind==='building'){ e.hp -= e.maxHp/e.life*dt; if (e.hp<=0){ e.hp=0; addFx(s,e.x,e.y,1,'#999',0.4); return; } }
+  if (e.stun>0){ e.stun -= dt; return; }
+  if (e.kind==='tower' && e.key==='king' && !e.active) return;
+  e.cd = Math.max(0, e.cd-dt);
+  let t = e.tid ? byId(s,e.tid) : null;
+  if (t && (t.hp<=0 || !canHit(e,t))) t = null;
+  if (e.kind!=='troop'){
+    if (t && !inRange(e,t)) t = null;
+    if (!t) t = nearestInRange(s,e);
+  } else {
+    e.rt -= dt;
+    if (!(t && inRange(e,t)) && (e.rt<=0 || !t)){ e.rt = 0.25; t = troopTarget(s,e); }
+  }
+  e.tid = t ? t.id : 0;
+  if (!t) return;
+  if (inRange(e,t)){
+    if (e.cd<=0){ attack(s,e,t); e.cd = e.hs; }
+  } else if (e.kind==='troop'){
+    moveToward(e,t,dt);
+  }
+}
+function collide(s){
+  const L = s.ents.filter(e => e.hp>0);
+  for (let i=0;i<L.length;i++) for (let j=i+1;j<L.length;j++){
+    const a=L[i], b=L[j];
+    if (!!a.fly !== !!b.fly) continue;
+    const am = a.kind==='troop', bm = b.kind==='troop';
+    if (!am && !bm) continue;
+    let dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy);
+    const m = (a.r+b.r)*0.9;
+    if (d>=m) continue;
+    if (d<1e-4){ dx=Math.random()-.5; dy=Math.random()-.5; d=Math.hypot(dx,dy); }
+    const ov=m-d, nx=dx/d, ny=dy/d;
+    const wa = am ? a.r*a.r : 1e9, wb = bm ? b.r*b.r : 1e9;
+    const ta = wb/(wa+wb), tb = wa/(wa+wb);
+    if (am){ a.x -= nx*ov*ta; a.y -= ny*ov*ta; }
+    if (bm){ b.x += nx*ov*tb; b.y += ny*ov*tb; }
+  }
+  for (const e of L) if (e.kind==='troop'){
+    e.x = clamp(e.x,0.4,17.6); e.y = clamp(e.y,0.4,31.6);
+    if (!e.fly && e.y>RT && e.y<RB){
+      const b = Math.abs(e.x-BR[0]) < Math.abs(e.x-BR[1]) ? BR[0] : BR[1];
+      if (Math.abs(e.x-b) > BHW-0.1) e.y = e.y<16 ? RT : RB;
+    }
+  }
+}
+function tick(s,dt){
+  if (s.over) return;
+  s.time -= dt;
+  const mult = (s.ot || s.time<=60) ? 2 : 1;
+  for (let o=0;o<2;o++) s.el[o] = Math.min(10, s.el[o] + dt*mult/2.8);
+  if (s.time<=0){
+    if (!s.ot){
+      if (s.cr[0]!==s.cr[1]) return endGame(s, s.cr[0]>s.cr[1] ? 0 : 1);
+      s.ot = true; s.time = 120;
+    } else {
+      s.time = 0;
+      const m = [0,1].map(o => Math.min(...s.ents.filter(e => e.kind==='tower' && e.owner===o && !e.dead).map(e => e.hp)));
+      return endGame(s, m[0]>m[1] ? 0 : m[1]>m[0] ? 1 : -1);
+    }
+  }
+  for (const sp of s.spells){ sp.t -= dt; if (sp.t<=0) castSpell(s,sp); }
+  s.spells = s.spells.filter(sp => sp.t>0);
+  for (const e of s.ents) if (e.hp>0) updateEnt(s,e,dt);
+  for (const p of s.projs){
+    const t = p.tid ? byId(s,p.tid) : null;
+    if (t && t.hp>0){ p.tx=t.x; p.ty=t.y; }
+    const dx=p.tx-p.x, dy=p.ty-p.y, d=Math.hypot(dx,dy), st=p.spd*dt;
+    if (d<=st){
+      p.done = true;
+      if (p.splash){ areaDmg(s,p.tx,p.ty,p.splash,p.dmg,p.owner,p.tg,1); addFx(s,p.tx,p.ty,p.splash,PROJ[p.kind].c,0.3); }
+      else if (t && t.hp>0) damage(s,t,p.dmg);
+    } else { p.x += dx/d*st; p.y += dy/d*st; }
+  }
+  s.projs = s.projs.filter(p => !p.done);
+  collide(s);
+  s.ents = s.ents.filter(e => e.hp>0 || e.kind==='tower');
+}
+
+// ===================== Bot =====================
+function newBot(owner, keys){ return {owner, deck:new Deck(keys), t:2}; }
+function botPlay(s,b,i,x,y){
+  const key = b.deck.hand[i];
+  if (tryPlay(s,b.owner,key,x,y)){ b.deck.play(i); return true; }
+  return false;
+}
+function botThink(s,b,dt){
+  b.t -= dt; if (b.t>0 || s.over) return;
+  b.t = 0.5 + Math.random()*0.7;
+  const o = b.owner, el = s.el[o], hand = b.deck.hand;
+  const mine = y => o===1 ? y<RB+1 : y>RT-1;           // auf meiner Hälfte?
+  const fy = y => o===1 ? y : H-y;                       // Hälfte spiegeln
+  const enemies = s.ents.filter(e => e.owner!==o && e.kind==='troop' && e.hp>0);
+  // Zauber auf Gruppen
+  for (let i=0;i<4;i++){
+    const c = CARDS[hand[i]]; if (c.type!=='spell' || el<c.cost) continue;
+    let best=null, bs=0;
+    for (const e of enemies){
+      const near = enemies.filter(f => Math.hypot(f.x-e.x,f.y-e.y) < c.rad*0.8);
+      const hpSum = near.reduce((a,f)=>a+Math.min(f.hp,c.dmg),0);
+      const sc = near.length>=3 || (c.dmg>300 && near.length>=2) ? hpSum : 0;
+      if (sc>bs){ bs=sc; best=e; }
+    }
+    if (best && bs>=250 && botPlay(s,b,i,best.x,best.y)) return;
+  }
+  // Verteidigen
+  const threats = enemies.filter(e => mine(e.y)).sort((a,c) => fy(a.y)-fy(c.y));
+  if (threats.length){
+    const th = threats[0];
+    const opts = [];
+    for (let i=0;i<4;i++){
+      const c = CARDS[hand[i]];
+      if (c.type==='spell' || c.cost>el || c.tg==='buildings') continue;
+      if (th.fly && c.tg!=='all') continue;
+      opts.push(i);
+    }
+    if (opts.length){
+      const i = opts[Math.random()*opts.length|0];
+      const c = CARDS[hand[i]];
+      let x = clamp(th.x,1,17), y;
+      if (c.type==='building'){ x = 9 + (th.x<9?-1.5:1.5); y = fy(11); }
+      else y = o===1 ? clamp(th.y-2.5,1,14.5) : clamp(th.y+2.5,17.5,31);
+      if (botPlay(s,b,i,x,y)) return;
+    }
+  }
+  // Angreifen
+  if (el>=9.5 || (el>=7 && Math.random()<0.35)){
+    const opts = [];
+    for (let i=0;i<4;i++){ const c=CARDS[hand[i]]; if (c.type==='troop' && c.cost<=el) opts.push(i); }
+    if (!opts.length) return;
+    const i = opts[Math.random()*opts.length|0];
+    const c = CARDS[hand[i]];
+    const lane = Math.random()<0.5 ? 3.5 : 14.5;
+    const y = c.key==='riese' || c.speed<0.9 ? fy(9) : c.tg==='buildings' ? fy(13.5) : fy(11);
+    botPlay(s,b,i,lane+(Math.random()-.5)*2,y);
+  }
+}
+//SIM-END
+
+// ===================== Client / Darstellung =====================
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+let S = 20, dpr = 1;
+let mode = null;        // 'bot' | 'host' | 'guest'
+let me = 0, sim = null, view = null, bot = null, myDeck = null;
+let peer = null, conn = null, simTimer = null, snapCount = 0;
+let fxList = [], sel = -1, dragging = false, ghost = null, endShown = false;
+let pending = {}, reqId = 0, deckV = -1;
+let deckKeys = loadDeck();
+
+function loadDeck(){
+  try { const d = JSON.parse(localStorage.getItem('kronenarena_deck')); if (Array.isArray(d) && d.length===8 && d.every(k=>CARDS[k])) return d; } catch(e){}
+  return DEFAULT_DECK.slice();
+}
+function saveDeck(){ try { localStorage.setItem('kronenarena_deck', JSON.stringify(deckKeys)); } catch(e){} }
+
+function layout(){
+  dpr = window.devicePixelRatio || 1;
+  const topH = 44, botH = Math.max(120, Math.min(150, innerHeight*0.2));
+  const w = Math.floor(Math.min(innerWidth, 540, (innerHeight-topH-botH)*W/H));
+  S = w/W;
+  cv.width = Math.round(w*dpr); cv.height = Math.round(w*H/W*dpr);
+  cv.style.width = w+'px'; cv.style.height = (w*H/W)+'px';
+  $('app').style.width = w+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+addEventListener('resize', layout);
+$('elgrid').innerHTML = '<div></div>'.repeat(10);
+
+const flip = () => me===1;
+function P(x,y){ return flip() ? [(W-x)*S,(H-y)*S] : [x*S,y*S]; }
+function toSim(cx,cy){
+  const r = cv.getBoundingClientRect();
+  const sx = (cx-r.left)/S, sy = (cy-r.top)/S;
+  if (sx<0 || sy<0 || sx>W || sy>H) return null;
+  return flip() ? {x:W-sx, y:H-sy} : {x:sx, y:sy};
+}
+const EMOJI_FONT = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+function circle(x,y,r){ ctx.beginPath(); ctx.arc(x,y,Math.max(0,r),0,Math.PI*2); }
+function rrect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function emoji(t,x,y,size,alpha=1){ ctx.globalAlpha=alpha; ctx.font=`${size}px ${EMOJI_FONT}`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(t,x,y+size*0.06); ctx.globalAlpha=1; }
+function hpBar(x,y,w,frac,col){
+  ctx.fillStyle='#000a'; rrect(x-w/2-1,y-1,w+2,6,3); ctx.fill();
+  ctx.fillStyle=col; rrect(x-w/2,y,Math.max(0,w*frac),4,2); ctx.fill();
+}
+const teamCol = o => o===me ? '#2f7bf0' : '#e0393e';
+
+function drawArena(){
+  for (let ty=0;ty<H;ty++) for (let tx=0;tx<W;tx++){
+    ctx.fillStyle = ((tx+ty)&1) ? '#74c650' : '#6bbd47';
+    ctx.fillRect(tx*S,ty*S,S+0.5,S+0.5);
+  }
+  // Ränder / Wege
+  ctx.fillStyle='#0002';
+  ctx.fillRect(0,0,S*0.4,H*S); ctx.fillRect(W*S-S*0.4,0,S*0.4,H*S);
+  // Fluss
+  const [,ry] = P(0, flip()?RB:RT);
+  const g = ctx.createLinearGradient(0,ry,0,ry+2*S);
+  g.addColorStop(0,'#3aa0e8'); g.addColorStop(.5,'#5ec3ff'); g.addColorStop(1,'#3aa0e8');
+  ctx.fillStyle=g; ctx.fillRect(0,ry,W*S,2*S);
+  ctx.strokeStyle='#ffffff55'; ctx.lineWidth=1.5;
+  const tt = performance.now()/600;
+  for (let i=0;i<9;i++){ const x=((i*2.3+tt)%W)*S; ctx.beginPath(); ctx.moveTo(x,ry+S*0.7); ctx.quadraticCurveTo(x+S*0.4,ry+S*0.5,x+S*0.8,ry+S*0.7); ctx.stroke();
+    const x2=((i*2.3+5-tt*0.7+100)%W)*S; ctx.beginPath(); ctx.moveTo(x2,ry+S*1.4); ctx.quadraticCurveTo(x2+S*0.4,ry+S*1.2,x2+S*0.8,ry+S*1.4); ctx.stroke(); }
+  // Brücken
+  for (const b of BR){
+    const [bx] = P(b,0);
+    ctx.fillStyle='#8a5a2b'; ctx.fillRect(bx-BHW*S, ry-S*0.3, BHW*2*S, 2.6*S);
+    ctx.strokeStyle='#5e3b19'; ctx.lineWidth=1;
+    for (let k=0;k<6;k++){ const yy = ry-S*0.3 + k*S*0.52; ctx.beginPath(); ctx.moveTo(bx-BHW*S,yy); ctx.lineTo(bx+BHW*S,yy); ctx.stroke(); }
+    ctx.fillStyle='#5e3b19'; ctx.fillRect(bx-BHW*S-3, ry-S*0.3, 4, 2.6*S); ctx.fillRect(bx+BHW*S-1, ry-S*0.3, 4, 2.6*S);
+  }
+}
+function drawZone(){
+  if (sel<0 || !myDeck) return;
+  const key = myDeck.hand[sel]; if (CARDS[key].type==='spell') return;
+  ctx.fillStyle='#ff202030';
+  for (let ty=0;ty<H;ty++) for (let tx=0;tx<W;tx++){
+    if (!canPlace(view, me, key, tx+0.5, ty+0.5)){ const [px,py]=P(tx+0.5,ty+0.5); ctx.fillRect(px-S/2,py-S/2,S,S); }
+  }
+}
+function drawTower(e){
+  const [px,py] = P(e.x,e.y), rr = e.r*S;
+  if (e.dead){
+    ctx.fillStyle='#6b6255'; circle(px,py,rr*0.85); ctx.fill();
+    ctx.fillStyle='#4a433a'; for (let i=0;i<5;i++){ circle(px+Math.cos(i*1.3)*rr*0.45, py+Math.sin(i*2.1)*rr*0.4, rr*0.22); ctx.fill(); }
+    return;
+  }
+  ctx.fillStyle='#0003'; rrect(px-rr+3,py-rr+5,rr*2,rr*2,rr*0.25); ctx.fill();
+  ctx.fillStyle='#9aa0a8'; rrect(px-rr,py-rr,rr*2,rr*2,rr*0.25); ctx.fill();
+  ctx.strokeStyle='#5d636d'; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle=teamCol(e.owner); rrect(px-rr*0.72,py-rr*0.72,rr*1.44,rr*1.44,rr*0.2); ctx.fill();
+  ctx.strokeStyle='#ffffff55'; ctx.stroke();
+  emoji(TOWER[e.key].emo, px, py, rr*0.95);
+  if (e.key==='king' && !e.active) emoji('💤', px+rr*0.75, py-rr*0.75, rr*0.5);
+  if (e.stun) emoji('⚡', px-rr*0.75, py-rr*0.75, rr*0.45);
+  const bw = rr*2.1, by = py-rr-9;
+  hpBar(px, by, bw, e.hp/e.maxHp, e.owner===me ? '#4fa3ff' : '#ff5a5f');
+  ctx.font=`bold ${Math.max(9,S*0.42)}px system-ui`; ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+  ctx.lineWidth=3; ctx.strokeStyle='#000a'; ctx.strokeText(Math.ceil(e.hp), px, by-1); ctx.fillText(Math.ceil(e.hp), px, by-1);
+}
+function drawUnit(e){
+  const c = CARDS[e.key]; const [px,py0] = P(e.x,e.y);
+  const lift = e.fly ? 0.7*S : 0, py = py0-lift, rr = e.r*S;
+  const a = e.deploy>0 ? 0.55 : 1;
+  ctx.fillStyle='#0004'; ctx.beginPath(); ctx.ellipse(px,py0+rr*0.55,rr*0.95,rr*0.45,0,0,Math.PI*2); ctx.fill();
+  ctx.globalAlpha = a;
+  if (e.kind==='building'){
+    ctx.fillStyle='#6d5a43'; rrect(px-rr,py-rr,rr*2,rr*2,rr*0.3); ctx.fill();
+    ctx.strokeStyle=teamCol(e.owner); ctx.lineWidth=3; ctx.stroke();
+  } else {
+    ctx.fillStyle=teamCol(e.owner); circle(px,py,rr); ctx.fill();
+    ctx.strokeStyle='#fff9'; ctx.lineWidth=1.5; ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+  const bump = e.atk>0 ? 1.15 : 1;
+  emoji(c.emo, px, py, rr*1.45*bump, a);
+  if (e.deploy>0){ ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(px,py,rr+3,-Math.PI/2,-Math.PI/2+Math.PI*2*(1-e.deploy)); ctx.stroke(); }
+  if (e.stun) emoji('⚡', px+rr*0.7, py-rr*0.8, rr*0.7);
+  if (e.hp<e.maxHp || e.kind==='building') hpBar(px, py-rr-7, Math.max(16,rr*2), e.hp/e.maxHp, e.owner===me ? '#4fa3ff' : '#ff5a5f');
+}
+function draw(){
+  ctx.clearRect(0,0,W*S,H*S);
+  drawArena();
+  drawZone();
+  const ents = view.ents;
+  const order = e => P(e.x,e.y)[1];
+  for (const e of ents.filter(e=>e.kind==='tower'&&e.dead)) drawTower(e);
+  const ground = ents.filter(e => !(e.kind==='tower'&&e.dead) && !e.fly).sort((a,b)=>order(a)-order(b));
+  for (const e of ground) e.kind==='tower' ? drawTower(e) : drawUnit(e);
+  for (const e of ents.filter(e=>e.fly).sort((a,b)=>order(a)-order(b))) drawUnit(e);
+  for (const p of view.projs){ const d=PROJ[p.kind]; const [px,py]=P(p.x,p.y); ctx.fillStyle=d.c; circle(px,py,d.r*S); ctx.fill(); ctx.strokeStyle='#0006'; ctx.lineWidth=1; ctx.stroke(); }
+  for (const sp of view.spells){
+    const c = CARDS[sp.key]; const f = 1 - sp.t/sp.T;
+    const [tx,ty] = P(sp.x,sp.y);
+    ctx.strokeStyle = sp.owner===me||sp.owner===undefined ? '#ffffffaa' : '#ffffffaa'; ctx.setLineDash([6,5]); ctx.lineWidth=2;
+    circle(tx,ty,c.rad*S); ctx.stroke(); ctx.setLineDash([]);
+    const [sx,sy] = P(sp.sx,sp.sy);
+    emoji(c.emo, sx+(tx-sx)*f, sy+(ty-sy)*f - Math.sin(f*Math.PI)*S*2, S*1.3);
+  }
+  for (const f of fxList){
+    const p = f.t/f.T; const [px,py]=P(f.x,f.y);
+    ctx.globalAlpha = Math.max(0,1-p); ctx.fillStyle=f.c; circle(px,py,f.r*S*(0.4+0.6*p)); ctx.fill(); ctx.globalAlpha=1;
+  }
+  if (ghost && sel>=0 && myDeck){
+    const key = myDeck.hand[sel], c = CARDS[key];
+    let gx=ghost.x, gy=ghost.y;
+    if (c.type!=='spell'){ gx=Math.floor(gx)+0.5; gy=Math.floor(gy)+0.5; }
+    const ok = canPlace(view, me, key, gx, gy);
+    const [px,py] = P(gx,gy);
+    if (c.type==='spell'){ ctx.fillStyle='#ffffff30'; circle(px,py,c.rad*S); ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke(); }
+    else { ctx.fillStyle = ok ? '#ffffff55' : '#ff000055'; circle(px,py,Math.max(c.r,0.6)*S*1.3); ctx.fill(); }
+    emoji(c.emo, px, py, S*1.2, 0.8);
+  }
+  if (view.ot || view.time<=60){
+    // kleiner Hinweis bei doppeltem Elixier
+  }
+}
+
+// ===================== UI =====================
+function cardEl(key){
+  const c = CARDS[key];
+  const d = document.createElement('div'); d.className='card';
+  d.innerHTML = `<div class="emo">${c.emo}</div><div class="nm">${c.name}</div><div class="cost">${c.cost}</div><div class="shade"></div>`;
+  return d;
+}
+function buildHand(){
+  const box = $('cards'); box.innerHTML='';
+  myDeck.hand.forEach((k,i) => {
+    const d = cardEl(k); d.dataset.i = i;
+    d.addEventListener('pointerdown', ev => { ev.preventDefault(); if (pendSlot(i)) return; sel = i; dragging = true; ghost = null; refreshSel(); });
+    box.appendChild(d);
+  });
+  const n = $('next'); n.innerHTML=''; n.appendChild(cardEl(myDeck.next));
+  deckV = myDeck.v; refreshSel();
+}
+function pendSlot(i){ return Object.values(pending).includes(i); }
+function refreshSel(){ [...$('cards').children].forEach((d,i) => { d.classList.toggle('sel', i===sel); d.classList.toggle('pend', pendSlot(i)); }); }
+function fmt(t){ t = Math.max(0,Math.ceil(t)); return Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); }
+function updateUI(){
+  if (!myDeck) return;
+  if (deckV!==myDeck.v) buildHand();
+  const el = view.el[me];
+  $('elfill').style.width = (el*10)+'%';
+  $('elnum').textContent = Math.floor(el);
+  [...$('cards').children].forEach((d,i) => {
+    const c = CARDS[myDeck.hand[i]];
+    d.querySelector('.shade').style.height = (el>=c.cost ? 0 : (1-el/c.cost)*100)+'%';
+  });
+  $('tm').textContent = fmt(view.time);
+  $('tmSub').textContent = view.ot ? 'Verlängerung · 2× Elixier' : (view.time<=60 ? '2× Elixier' : '');
+  $('crMe').textContent = '👑 '+view.cr[me];
+  $('crFoe').textContent = view.cr[1-me]+' 👑';
+}
+
+addEventListener('pointermove', ev => { if (sel>=0) ghost = toSim(ev.clientX, ev.clientY); });
+addEventListener('pointerup', ev => {
+  if (!dragging) return;
+  dragging = false;
+  const p = toSim(ev.clientX, ev.clientY);
+  if (p) placeSel(p);
+});
+cv.addEventListener('pointerdown', ev => {
+  if (sel<0 || dragging) return;
+  const p = toSim(ev.clientX, ev.clientY);
+  if (p) placeSel(p);
+});
+function placeSel(p){
+  if (sel<0 || !mode || view.over) return;
+  const i = sel, key = myDeck.hand[i], c = CARDS[key];
+  let x=p.x, y=p.y;
+  if (c.type!=='spell'){ x=Math.floor(x)+0.5; y=Math.floor(y)+0.5; }
+  if (!canPlace(view, me, key, x, y) || view.el[me] < c.cost){ ghost = null; return; }
+  if (mode==='guest'){
+    const n = ++reqId; pending[n] = i;
+    conn.send({t:'play', key, x, y, n});
+  } else {
+    if (tryPlay(sim, 0, key, x, y)) myDeck.play(i);
+  }
+  sel = -1; ghost = null; refreshSel();
+}
+
+function showEnd(){
+  endShown = true;
+  const w = view.over.w;
+  $('endT').textContent = w===-1 ? 'Unentschieden' : (w===me ? '🏆 Sieg!' : 'Niederlage');
+  $('endS').textContent = `👑 ${view.cr[me]}  :  ${view.cr[1-me]} 👑`;
+  $('endOv').classList.remove('hidden');
+}
+
+// ===================== Spielstart / Loop =====================
+function startGame(m){
+  mode = m; me = m==='guest' ? 1 : 0; endShown = false; fxList = []; sel = -1; pending = {};
+  myDeck = new Deck(deckKeys);
+  ['menu','lobby','deckEd','endOv'].forEach(id => $(id).classList.add('hidden'));
+  layout();
+  if (m==='guest'){
+    view = {ents:[], projs:[], spells:[], time:180, ot:false, el:[5,5], cr:[0,0], over:null};
+  } else {
+    sim = newSim(); view = sim;
+    sim.fxOut = f => fxList.push({...f, t:0});
+    if (m==='bot') bot = newBot(1, pickBotDeck());
+    clearInterval(simTimer);
+    simTimer = setInterval(() => {
+      tick(sim, 1/30);
+      if (mode==='bot'){ botThink(sim, bot, 1/30); sim.netfx.length = 0; }
+      else if (conn && conn.open && (++snapCount % 2===0 || sim.over)) conn.send(snap(sim));
+    }, 1000/30);
+  }
+  buildHand();
+}
+function pickBotDeck(){
+  const decks = [
+    ['ritter','bogen','riese','kobolde','feuerball','pfeile','drache','kanone'],
+    ['bock','skelette','fleder','magier','blitz','feuerball','ritter','kanone'],
+    ['riese','magier','kobolde','bogen','pfeile','blitz','drache','skelette'],
+  ];
+  return decks[Math.random()*decks.length|0];
+}
+function snap(s){
+  return {t:'s', tm:+s.time.toFixed(2), ot:s.ot, el:s.el.map(v=>+v.toFixed(2)), cr:s.cr, over:s.over,
+    e: s.ents.map(e => [e.id, e.key, e.owner, +e.x.toFixed(2), +e.y.toFixed(2), Math.round(e.hp), e.maxHp,
+         (e.deploy>0?1:0)|(e.active?2:0)|(e.dead?4:0)|(e.stun>0?8:0)|(e.atk>0?16:0), e.deploy>0?+e.deploy.toFixed(2):0]),
+    p: s.projs.map(p => [+p.x.toFixed(2), +p.y.toFixed(2), p.kind]),
+    sp: s.spells.map(sp => [sp.key, sp.x, sp.y, +(sp.t/sp.T).toFixed(2), sp.sx, sp.sy, sp.owner]),
+    fx: s.netfx.splice(0)};
+}
+function applySnap(m){
+  const old = new Map(view.ents.map(e => [e.id,e]));
+  view.ents = m.e.map(a => {
+    const [id,key,owner,x,y,hp,maxHp,f,dep] = a;
+    let e = old.get(id);
+    if (!e){
+      const def = CARDS[key] || TOWER[key];
+      e = {id, key, owner, x, y, kind: TOWER[key] ? 'tower' : CARDS[key].type, r:def.r, fly:!!def.fly};
+    }
+    e.tx=x; e.ty=y; e.hp=hp; e.maxHp=maxHp; e.deploy = f&1 ? dep : 0; e.active=!!(f&2); e.dead=!!(f&4); e.stun=f&8?1:0; e.atk=f&16?0.1:0;
+    return e;
+  });
+  view.projs = m.p.map(a => ({x:a[0], y:a[1], kind:a[2]}));
+  view.spells = m.sp.map(a => ({key:a[0], x:a[1], y:a[2], t:a[3], T:1, sx:a[4], sy:a[5], owner:a[6]}));
+  view.time=m.tm; view.ot=m.ot; view.el=m.el; view.cr=m.cr;
+  for (const f of m.fx) fxList.push({...f, t:0});
+  if (m.over && !view.over) view.over = m.over;
+}
+
+let last = performance.now();
+function frame(ts){
+  const dt = Math.min(0.05, (ts-last)/1000); last = ts;
+  if (mode && view){
+    if (mode==='guest') for (const e of view.ents){ if (e.tx!==undefined){ const k=Math.min(1,dt*12); e.x+=(e.tx-e.x)*k; e.y+=(e.ty-e.y)*k; } }
+    for (const f of fxList) f.t += dt;
+    fxList = fxList.filter(f => f.t<f.T);
+    draw(); updateUI();
+    if (view.over && !endShown) showEnd();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+function stopAll(){
+  clearInterval(simTimer); simTimer=null;
+  try { conn && conn.close(); } catch(e){}
+  try { peer && peer.destroy(); } catch(e){}
+  conn=null; peer=null; mode=null;
+}
+function toMenu(){
+  stopAll();
+  ['lobby','deckEd','endOv'].forEach(id => $(id).classList.add('hidden'));
+  $('menu').classList.remove('hidden');
+}
+
+// ===================== Online (PeerJS) =====================
+const PREFIX = 'kronenarena-v1-';
+function genCode(){ const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s=''; for(let i=0;i<5;i++) s+=a[Math.random()*a.length|0]; return s; }
+function peerOk(){
+  if (typeof Peer==='undefined'){ $('msg').textContent='PeerJS konnte nicht geladen werden (Internet?).'; return false; }
+  return true;
+}
+function showLobby(host){
+  $('menu').classList.add('hidden'); $('lobby').classList.remove('hidden');
+  $('hostBox').classList.toggle('hidden', !host); $('joinBox').classList.toggle('hidden', host);
+  $('lbTitle').textContent = host ? 'Raum erstellen' : 'Raum beitreten';
+  $('msg').textContent='';
+}
+function hostGame(){
+  showLobby(true);
+  if (!peerOk()) return;
+  const code = genCode();
+  $('code').textContent = '…';
+  peer = new Peer(PREFIX+code);
+  peer.on('open', () => { $('code').textContent = code; });
+  peer.on('error', err => {
+    if (err.type==='unavailable-id'){ try{peer.destroy();}catch(e){} hostGame(); return; }
+    $('msg').textContent = 'Fehler: '+err.type;
+  });
+  peer.on('connection', c => {
+    if (conn){ c.close(); return; }
+    conn = c;
+    c.on('open', () => { c.send({t:'start'}); startGame('host'); });
+    c.on('data', m => {
+      if (m.t==='play' && sim){ const ok = tryPlay(sim, 1, m.key, m.x, m.y); c.send({t: ok?'ok':'no', n:m.n}); }
+    });
+    c.on('close', lost);
+    c.on('error', lost);
+  });
+}
+function joinGame(){
+  if (!peerOk()) return;
+  const code = $('codeIn').value.trim().toUpperCase();
+  if (code.length<5){ $('msg').textContent='Code hat 5 Zeichen.'; return; }
+  $('msg').textContent = 'Verbinde …';
+  try { peer && peer.destroy(); } catch(e){}
+  peer = new Peer();
+  peer.on('error', err => { $('msg').textContent = err.type==='peer-unavailable' ? 'Raum nicht gefunden.' : 'Fehler: '+err.type; });
+  peer.on('open', () => {
+    conn = peer.connect(PREFIX+code, {reliable:true, serialization:'json'});
+    conn.on('data', m => {
+      if (m.t==='start') startGame('guest');
+      else if (m.t==='s' && mode==='guest') applySnap(m);
+      else if (m.t==='ok'){ const i = pending[m.n]; delete pending[m.n]; if (i!==undefined){ myDeck.play(i); } refreshSel(); }
+      else if (m.t==='no'){ delete pending[m.n]; refreshSel(); }
+    });
+    conn.on('close', lost);
+    conn.on('error', lost);
+  });
+}
+function lost(){
+  if (!mode) return;
+  if (view && view.over) return;
+  stopAll();
+  $('endT').textContent = 'Verbindung getrennt';
+  $('endS').textContent = 'Der Gegner ist nicht mehr da.';
+  $('endOv').classList.remove('hidden'); endShown = true;
+}
+
+// ===================== Deck-Editor =====================
+function openDeck(){
+  $('menu').classList.add('hidden'); $('deckEd').classList.remove('hidden');
+  const grid = $('deckGrid'); grid.innerHTML='';
+  for (const k of Object.keys(CARDS)){
+    const d = cardEl(k); d.classList.toggle('on', deckKeys.includes(k));
+    d.onclick = () => {
+      if (deckKeys.includes(k)) deckKeys = deckKeys.filter(x=>x!==k);
+      else if (deckKeys.length<8) deckKeys.push(k);
+      d.classList.toggle('on', deckKeys.includes(k)); deckInfo();
+    };
+    grid.appendChild(d);
+  }
+  deckInfo();
+}
+function deckInfo(){
+  const avg = deckKeys.length ? (deckKeys.reduce((a,k)=>a+CARDS[k].cost,0)/deckKeys.length).toFixed(1) : '0';
+  $('deckInfo').textContent = `${deckKeys.length}/8 Karten · Ø Elixier ${avg}`;
+  $('bDeckOk').disabled = deckKeys.length!==8; $('bDeckOk').style.opacity = deckKeys.length===8 ? 1 : .5;
+}
+
+$('bBot').onclick = () => startGame('bot');
+$('bHost').onclick = hostGame;
+$('bJoin').onclick = () => showLobby(false);
+$('bJoinGo').onclick = joinGame;
+$('bBack').onclick = toMenu;
+$('bDeck').onclick = openDeck;
+$('bDeckOk').onclick = () => { if (deckKeys.length===8){ saveDeck(); toMenu(); } };
+$('bEnd').onclick = toMenu;
+$('codeIn').addEventListener('keydown', e => { if (e.key==='Enter') joinGame(); });
+
+layout();
+view = {ents:newSim().ents, projs:[], spells:[], time:180, ot:false, el:[5,5], cr:[0,0], over:null};
+</script>
+</body>
+</html>
