@@ -146,7 +146,7 @@ const SEITEN = [
     kategorie: "games",
     name: "V-games",
     ordner: "v-games",
-    bild: "",
+    bild: "v-games.png",
     zeigeInfo: true,
     infoText: "Achtung: Die Inhalte auf dieser Website sind noch in der OpenBeta Also es konnen bugs kommen / made by Valle"
   },
