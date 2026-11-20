@@ -141,6 +141,15 @@ const SEITEN = [
     zeigeInfo: true,
     infoText: "Mit der Nutzung dieser Plattform stimmst du zu, dass SoundCloud deinen Standort trackt, absolut alles von dir auf dieser Webseite für jeden öffentlich einsehbar ist und das Schreiben von Beleidigungen, Spam oder jeglichem anderen Unsinn komplett verboten ist"
   },
+   {
+    id: "sky-fpv",
+    kategorie: "games",
+    name: "Sky Fpv",
+    ordner: "Sky-Fpv",
+    bild: "Sky-Fpv.png",
+    zeigeInfo: true,
+    infoText: "Mit der Nutzung dieser Plattform stimmst du zu, dass SoundCloud deinen Standort trackt, absolut alles von dir auf dieser Webseite für jeden öffentlich einsehbar ist und das Schreiben von Beleidigungen, Spam oder jeglichem anderen Unsinn komplett verboten ist"
+  },
   {
     id: "v-games",
     kategorie: "games",
