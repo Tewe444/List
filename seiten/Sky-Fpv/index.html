@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sky FPV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/ui.css">
+  <link rel="stylesheet" href="css/hud.css">
+  <script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  } }
+  </script>
+</head>
+<body>
+  <canvas id="gl"></canvas>
+
+  <div id="loading" class="screen">
+    <div class="logo">SKY<span>FPV</span></div>
+    <div class="bar"><div id="load-fill"></div></div>
+    <div id="load-text">Lade …</div>
+  </div>
+
+  <div id="menu" class="screen hidden">
+    <div class="logo big">SKY<span>FPV</span></div>
+    <div class="sub">Realistischer FPV-Drohnen-Simulator</div>
+    <nav class="menu-buttons">
+      <button data-go="fly">Fliegen</button>
+      <button data-go="builder">Werkstatt</button>
+      <button data-go="cliplist">Clips &amp; Replays</button>
+      <button data-go="settings">Einstellungen</button>
+    </nav>
+    <aside id="playlist" class="playlist">
+      <div class="pl-head"><span class="mb-logo">♪</span><b>Playlist</b><span id="pl-count"></span></div>
+      <div id="pl-now" class="pl-now"></div>
+      <div id="pl-items" class="pl-items"></div>
+      <div class="pl-qhead">Warteschlange <button id="pl-qclear" title="Warteschlange leeren">leeren</button></div>
+      <div id="pl-queue" class="pl-items pl-queue"></div>
+    </aside>
+    <div class="pad-status" id="pad-status">Kein Controller erkannt – Funke per USB verbinden (Joystick-Modus) und einen Stick bewegen.</div>
+  </div>
+
+  <div id="fly" class="screen panel-screen hidden">
+    <h2>Flug starten</h2>
+    <div class="cols">
+      <section><h3>Karte</h3><div id="map-list" class="cards"></div></section>
+      <section>
+        <h3>Modus</h3>
+        <div class="seg" id="mode-seg"><button data-mode="free" class="on">Freies Fliegen</button><button data-mode="race">Rennen (3 Runden)</button></div>
+        <h3>Drohne</h3>
+        <select id="fly-build"></select>
+        <div id="fly-build-info" class="stats"></div>
+        <h3>Multiplayer</h3>
+        <label class="consent-check"><input type="checkbox" id="mp-on"> Online mit Freunden fliegen</label>
+        <div class="row"><input id="mp-name" placeholder="Dein Name" maxlength="20"><input id="mp-room" placeholder="Raum" maxlength="32"></div>
+        <div id="mp-status" class="note"></div>
+        <div class="row"><button class="primary" id="btn-start">Start</button><button data-go="menu">Zurück</button></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="builder" class="screen hidden">
+    <div class="b-top">
+      <button data-go="menu">‹ Zurück</button>
+      <select id="b-builds"></select>
+      <input id="b-name" placeholder="Name der Drohne">
+      <button id="b-new" title="Neue leere Drohne – von Null bauen">+ Neu</button><button id="b-copy" title="Kopie dieser Drohne">⧉</button><button id="b-del" title="Löschen">🗑</button>
+      <span class="b-sp"></span>
+      <button id="b-explode">Explosion</button><button id="b-test">Motortest</button><button id="b-colors-btn">Farben</button><button id="b-reset-view" title="Ansicht zurücksetzen">⟲</button>
+      <button class="primary" id="b-fly">Fliegen ›</button>
+    </div>
+    <div class="b-col left" id="b-cards-l"></div>
+    <div class="b-col right" id="b-cards-r"></div>
+    <div id="b-picker" class="hidden">
+      <div class="b-pick-head"><h3 id="b-cat-title">Teile</h3><button id="b-pick-close">×</button></div>
+      <div class="preview-box"><canvas id="b-preview" width="560" height="340"></canvas><div id="b-spec" class="stats spec"></div></div>
+      <div id="b-options"></div>
+    </div>
+    <div id="b-colorpop" class="hidden"><div id="b-colors"></div></div>
+    <div class="b-bottom"><div id="b-bars"></div><div id="b-warn"></div></div>
+    <div class="b-hint">Karte anklicken = Teil wechseln · Linke Maus: drehen · Rad: zoomen · Rechte Maus: verschieben</div>
+  </div>
+
+  <div id="settings" class="screen panel-screen hidden">
+    <h2>Einstellungen</h2>
+    <div class="tabs" id="set-tabs">
+      <button data-tab="ctrl" class="on">Steuerung</button><button data-tab="rates">Rates</button>
+      <button data-tab="cam">Kamera</button><button data-tab="gfx">Grafik &amp; Ton</button><button data-tab="phys">Physik</button><button data-tab="music">Musik</button>
+    </div>
+    <div id="set-body"></div>
+    <div class="row"><button data-go="back">Zurück</button></div>
+  </div>
+
+  <div id="cliplist" class="screen panel-screen hidden">
+    <h2>Clips &amp; Replays</h2>
+    <p class="note">Beim Fliegen speichert <b>F8</b> (oder dein Clip-Schalter) die letzte Minute: als MP4-Video im Downloads-Ordner und als Replay hier. Im Replay fliegst du als Zuschauer frei herum, wählst Kameras, Zeitlupe und den Abschnitt und exportierst ihn als MP4.</p>
+    <div class="row"><div class="seg" id="clip-tabs"><button data-t="replays" class="on">Replays</button><button data-t="videos">Aufnahmen (MP4)</button></div><input id="clip-search" placeholder="Suchen …" style="max-width:260px"></div>
+    <div id="clip-items" class="clip-list"></div>
+    <div id="video-modal" class="hidden"><div class="video-box"><video id="video-player" controls autoplay></video><button id="video-close">Schließen</button></div></div>
+    <div class="row"><button data-go="menu">Zurück</button></div>
+  </div>
+
+  <div id="replay" class="hidden">
+    <div class="rp-top">
+      <span id="rp-title"></span>
+      <div class="seg"><button data-cam="free">Frei</button><button data-cam="fpv">FPV</button><button data-cam="chase">Verfolger</button><button data-cam="orbit">Orbit</button></div>
+      <button id="rp-back">Zurück</button>
+    </div>
+    <div class="rp-bottom">
+      <div class="rp-tl"><div id="rp-range"></div><input type="range" id="rp-time" min="0" value="0"></div>
+      <div class="rp-row">
+        <button id="rp-play">⏸</button><span id="rp-clock">0:00.0</span>
+        <select id="rp-speed"><option value="0.1">0,1×</option><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="2">2×</option></select>
+        <button id="rp-in">Start hier</button><button id="rp-out">Ende hier</button><span id="rp-marks"></span>
+        <button class="primary" id="rp-export">Exportieren (MP4)</button>
+      </div>
+      <div class="rp-help">WASD fliegen · Q/E runter/hoch · Maus ziehen = umsehen · Mausrad = Tempo · Shift = schneller · Leertaste = Pause · Funke steuert die Kamera mit</div>
+    </div>
+  </div>
+
+  <div id="hud" class="hidden">
+    <div class="osd">
+      <div id="osd-tl" class="osd-tl"></div>
+      <div id="osd-tr" class="osd-tr"></div>
+      <div id="osd-bl" class="osd-bl"></div>
+      <div id="osd-br" class="osd-br"></div>
+      <div id="osd-center" class="osd-center"></div>
+      <div class="crosshair">─┼─</div>
+      <div id="osd-warn" class="osd-warn"></div>
+    </div>
+    <div class="side-left">
+      <div class="panel-title">PROPS</div>
+      <svg id="prop-svg" viewBox="0 0 120 120" width="120" height="120">
+        <line x1="30" y1="30" x2="90" y2="90" class="arm"/><line x1="90" y1="30" x2="30" y2="90" class="arm"/>
+        <rect x="50" y="44" width="20" height="32" rx="4" class="body"/>
+        <circle id="pc3" cx="28" cy="28" r="20"/><circle id="pc0" cx="92" cy="28" r="20"/>
+        <circle id="pc2" cx="28" cy="92" r="20"/><circle id="pc1" cx="92" cy="92" r="20"/>
+        <text id="pt3" x="28" y="32"></text><text id="pt0" x="92" y="32"></text>
+        <text id="pt2" x="28" y="96"></text><text id="pt1" x="92" y="96"></text>
+        <polygon points="60,6 55,14 65,14" class="nose"/>
+      </svg>
+      <div class="panel-title">AKKU</div>
+      <div class="batt"><div id="batt-fill"></div></div>
+      <div id="batt-info" class="small"></div>
+    </div>
+    <pre class="alt-ladder" id="alt-ladder"></pre>
+    <div id="sticks" class="sticks"><div class="stick"><i id="st-l"></i></div><div class="stick"><i id="st-r"></i></div></div>
+    <div id="race" class="race hidden"></div>
+    <div id="hud-help" class="hud-help">Leertaste: Scharf · R: Reset · T: Turtle · C: Kamera · M: Acro/Angle · F8: Clip · Esc: Pause</div>
+  </div>
+
+  <div id="pause" class="screen hidden">
+    <h2>Pause</h2>
+    <nav class="menu-buttons">
+      <button id="p-resume">Weiter</button>
+      <button id="p-reset">Neu starten</button>
+      <button id="p-settings">Einstellungen</button>
+      <button id="p-menu">Hauptmenü</button>
+    </nav>
+  </div>
+
+  <div id="wizard" class="screen hidden">
+    <div class="wz-box">
+      <div class="wz-step" id="wz-step"></div>
+      <h2 id="wz-title"></h2>
+      <p id="wz-text"></p>
+      <div id="wz-detect" class="wz-detect"></div>
+      <div class="axes" id="wz-axes"></div>
+      <div id="wz-pad"></div>
+      <div class="row">
+        <button class="primary" id="wz-next">Weiter</button>
+        <button id="wz-skipstep" class="hidden">Schritt überspringen</button>
+      </div>
+      <button id="wz-skip" class="wz-skip">Überspringen</button>
+    </div>
+  </div>
+
+  <div id="sc-consent" class="screen hidden">
+    <div class="wz-box consent">
+      <div class="wz-step">Datenschutz-Hinweis &amp; Nutzungsbedingungen</div>
+      <h2>SoundCloud verbinden</h2>
+      <div class="consent-text">
+        <p>Wenn du SoundCloud aktivierst, wird der SoundCloud-Player direkt von Servern der <b>SoundCloud Global Limited &amp; Co. KG</b> geladen. Sky FPV selbst speichert oder überträgt dabei nichts.</p>
+        <ul>
+          <li><b>Deine IP-Adresse</b>, Browser- und Geräteinformationen sowie Nutzungsdaten (z. B. welche Titel du hörst) werden an SoundCloud übertragen.</li>
+          <li>SoundCloud kann <b>Cookies</b> und ähnliche Technologien setzen und dich darüber – auch webseitenübergreifend – <b>wiedererkennen und tracken</b>, z. B. für Statistik und Werbung.</li>
+          <li>Daten können in Länder <b>außerhalb der EU</b> (z. B. USA) übertragen werden.</li>
+          <li>Für die Nutzung gelten zusätzlich die <b>Nutzungsbedingungen</b> und die <b>Datenschutzerklärung von SoundCloud</b>.</li>
+          <li>Ohne deine Zustimmung wird <b>keine Verbindung</b> zu SoundCloud aufgebaut. Du kannst die Zustimmung jederzeit unter Einstellungen → Musik widerrufen.</li>
+        </ul>
+      </div>
+      <label class="consent-check"><input type="checkbox" id="sc-accept-check"> Ich habe den Hinweis gelesen und stimme der Übertragung meiner Daten an SoundCloud zu.</label>
+      <div class="row"><button class="primary" id="sc-accept" disabled>Zustimmen &amp; verbinden</button><button id="sc-decline">Ablehnen</button></div>
+    </div>
+  </div>
+
+  <div id="musicbar" class="hidden">
+    <span class="mb-logo">♪</span><span id="mb-title">SoundCloud</span>
+    <button id="mb-play">⏸</button><button id="mb-next">⏭</button>
+    <input type="range" id="mb-vol" min="0" max="100" step="1">
+    <div id="sc-holder"></div>
+  </div>
+
+  <div id="toast"></div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

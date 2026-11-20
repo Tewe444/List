@@ -1,0 +1,14 @@
+Sky FPV - Sounds (alle CC0 / Public Domain, Namensnennung freiwillig)
+
+motor_loop.mp3  (nicht mehr verwendet – Motoren werden synthetisiert) <- "generator loop" (loop_generator_1.mp3), OpenGameArt, CC0
+                   https://opengameart.org/content/generator-loop
+air_loop.wav    <- "(defect) motor loop" (fan_interval.wav), OpenGameArt, CC0
+                   https://opengameart.org/content/defect-motor-loop
+crash.ogg       <- "Crash Collision" von qubodup (qubodup-crash.ogg), OpenGameArt, CC0
+                   https://opengameart.org/content/crash-collision
+hit.wav         <- "metal impact sounds" (clink1_0.wav), OpenGameArt, CC0
+                   https://opengameart.org/content/metal-impact-sounds
+arm.ogg, disarm.ogg, gate.ogg, lap.ogg, click.ogg, glitch.ogg
+                <- "Interface Sounds" von Kenney (kenney.nl), CC0
+                   https://opengameart.org/content/interface-sounds
+                   (confirmation_002, error_004, confirmation_004, maximize_006, click_002, glitch_003)
