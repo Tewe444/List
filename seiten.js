@@ -159,6 +159,15 @@ const SEITEN = [
     zeigeInfo: true,
     infoText: "Achtung: Die Inhalte auf dieser Website sind noch in der OpenBeta Also es konnen bugs kommen / made by Valle"
   },
+  {
+    id: "port-solara",
+    kategorie: "games",
+    name: "port-solara",
+    ordner: "port-solara",
+    bild: "",
+    zeigeInfo: true,
+    infoText: "Achtung: Die Inhalte auf dieser Website sind noch in der OpenBeta Also es konnen bugs kommen"
+  },
    
   // ================= NÜTZLICHE WEBSEITEN =================
   {
