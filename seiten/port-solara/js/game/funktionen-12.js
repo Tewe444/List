@@ -51,7 +51,7 @@ function paraTick(A,dt){if(vehOut(A,dt,c=>c.vt==='ambulance','Rettungswagen'))re
   if(A.level>=8){P.hp=100;endActivity(true,'Rettungsdienst komplett! +$'+bonus);return;}toast(`Level ${A.level} geschafft! +$${bonus}`);A.level++;paraLevel(A);}}
 
 // ---------- Pizzabote ----------
-function openPizza(p){const sp=SPECIAL['4,9'];openPanel('Pizza Presto',()=>[{label:`Pizzas ausliefern – Level ${Math.min(8,PROG.pizza+1)}/8`,sub:'Mit dem Roller heiße Pizzas zu den Kunden bringen',right:'🍕',act(){if(!canStartSide())return;closePanel();startPizza(sp);}}],()=>`Bisher geschafft: Level ${PROG.pizza}/8`);}
+function openPizza(p){const sp=SPECIAL['4,9'];openPanel('Pizza Presto',()=>[{label:`Pizzas ausliefern – Level ${Math.min(8,PROG.pizza+1)}/8`,sub:'Mit dem Roller heiße Pizzas zu den Kunden bringen',right:'',act(){if(!canStartSide())return;closePanel();startPizza(sp);}}],()=>`Bisher geschafft: Level ${PROG.pizza}/8`);}
 function startPizza(sp){let c=P.inCar;if(!c||c.vt!=='scooter'){const s=sp.scooters[0];c=parkedCar(s.x+RR(-.5,.5),s.z,0,0xd35400,'scooter');if(P.inCar)exitCar(true);enterCar(c);}c.keep=true;
  startActivity({type:'pizza',title:'PIZZABOTE',sub:'Liefere alle Pizzas aus, bevor sie kalt werden',level:Math.min(8,PROG.pizza+1),scooter:c,start(A){pizzaLevel(A);},tick:pizzaTick,cleanup(A){A.scooter.keep=false;A.blipPts=null;}});}
 function pizzaLevel(A){A.drops=[];for(let k=0;k<2+A.level;k++){const p=curbPoint(50,330);if(p)A.drops.push(p);}A.timer=35+A.level*14;A.blipPts=A.drops;A.text=`Pizzabote Level ${A.level}/8: ${A.drops.length} Pizzas ausliefern`;}
@@ -60,7 +60,7 @@ function pizzaTick(A,dt){if(vehOut(A,dt,c=>c.vt==='scooter','Roller'))return;con
  let best=null,bd=1e9;for(const d of A.drops){const dd=distP(d);if(dd<bd){bd=dd;best=d;}}
  if(best){markAt(best);if(bd<7&&Math.abs(c.speed)<15){A.drops.splice(A.drops.indexOf(best),1);const tip=Math.round(RR(8,25));P.money+=tip;cashSound();cashPop('+$'+tip);A.timer+=4;toast(`Pizza geliefert! Noch ${A.drops.length}`);A.text=`Pizzabote Level ${A.level}/8: noch ${A.drops.length} Pizzas`;}}
  if(!A.drops.length){const bonus=A.level*80;P.money+=bonus;PROG.pizza=Math.max(PROG.pizza,A.level);if(A.level>=8){endActivity(true,'Pizzabote komplett! +$'+bonus);return;}toast(`Level ${A.level} geschafft! +$${bonus}`);A.level++;pizzaLevel(A);}}
-function openBounty(p){openPanel('Kopfgeld-Büro',()=>BOUNTIES.map((b,k)=>({label:b.name,sub:k<PROG.bounty?'erledigt':k===PROG.bounty?`${b.guards} Leibwächter · Belohnung $${b.reward.toLocaleString('de-DE')}`:'gesperrt',dis:k!==PROG.bounty,right:k<PROG.bounty?'✓':k===PROG.bounty?'▶':'🔒',act(){if(!canStartSide())return;closePanel();startBounty(k);}})),()=>`Gesuchte Gangster ausschalten und Kopfgeld kassieren. Erledigt: ${PROG.bounty}/6`);}
+function openBounty(p){openPanel('Kopfgeld-Büro',()=>BOUNTIES.map((b,k)=>({label:b.name,sub:k<PROG.bounty?'erledigt':k===PROG.bounty?`${b.guards} Leibwächter · Belohnung $${b.reward.toLocaleString('de-DE')}`:'gesperrt',dis:k!==PROG.bounty,right:k<PROG.bounty?'✓':k===PROG.bounty?'▶':'gesperrt',act(){if(!canStartSide())return;closePanel();startBounty(k);}})),()=>`Gesuchte Gangster ausschalten und Kopfgeld kassieren. Erledigt: ${PROG.bounty}/6`);}
 function startBounty(k){const b=BOUNTIES[k];const x=nodeX(b.i)+9.5,z=nodeX(b.j)+9.5;
  startActivity({type:'bounty',title:'KOPFGELD',sub:b.name,text:`Kopfgeld: Schalte ${b.name} aus`,
   start(A){A.target=spawnGang(x,z,true,true,{boss:true,name:b.name,hp:220+k*40,weapon:k>2?'smg':'pistol'});A.guards=[];for(let g=0;g<b.guards;g++){const a=g/b.guards*Math.PI*2;A.guards.push(spawnGang(x+Math.cos(a)*5,z+Math.sin(a)*5,true,true,{weapon:k>3&&g%2?'smg':'pistol'}));}},
@@ -71,7 +71,7 @@ function gridPath(a,b){const key=n=>n.i*100+n.j;const prev=new Map([[key(a),null
  if(!prev.has(key(b)))return [a,b];const out=[];let n=b;while(n){out.unshift(n);n=prev.get(key(n));}return out;}
 function racePath(def){if(def.pts){const P0=def.pts();let all=[];for(let l=0;l<def.laps;l++)all=all.concat(l?P0.slice(1):P0);return all;}let nodes=[];for(let k=0;k<def.wp.length-1;k++){const seg=gridPath({i:def.wp[k][0],j:def.wp[k][1]},{i:def.wp[k+1][0],j:def.wp[k+1][1]});if(nodes.length)seg.shift();nodes=nodes.concat(seg);}
  let all=[];for(let l=0;l<def.laps;l++)all=all.concat(l?nodes.slice(1):nodes);return all.map(n=>nd(n.i,n.j));}
-function openRaces(p){openPanel('Straßenrennen',()=>RACES.map((r,k)=>({label:r.name,sub:`${r.laps} Runde${r.laps>1?'n':''} · ${r.rivals} Gegner · Siegprämie $${r.reward.toLocaleString('de-DE')}${PROG.races.includes(k)?' · schon gewonnen':''}`,right:PROG.races.includes(k)?'🏆':'▶',act(){if(!canStartSide())return;closePanel();startRace(k,false);}})),()=>'Du startest direkt in der Startaufstellung. Kein Auto? Jax leiht dir eins.');}
+function openRaces(p){openPanel('Straßenrennen',()=>RACES.map((r,k)=>({label:r.name,sub:`${r.laps} Runde${r.laps>1?'n':''} · ${r.rivals} Gegner · Siegprämie $${r.reward.toLocaleString('de-DE')}${PROG.races.includes(k)?' · schon gewonnen':''}`,right:PROG.races.includes(k)?'gewonnen':'▶',act(){if(!canStartSide())return;closePanel();startRace(k,false);}})),()=>'Du startest direkt in der Startaufstellung. Kein Auto? Jax leiht dir eins.');}
 function startRace(idx,forMission){const def=RACES[idx];if(!P.inCar&&forMission)return false;
  const pts=racePath(def);let c=P.inCar;
  if(!c){c=parkedCar(pts[0].x,pts[0].z,0,0xff2d55,'sport');c.keep=true;enterCar(c);}
@@ -94,7 +94,7 @@ function raceTick(dt){const r=race;if(!r)return;
  r.rank=ahead+1;}
 function finishRace(win,text){const r=race;if(!r)return;if(win){const pay=r.def.reward;P.money+=pay;cashSound();if(!PROG.races.includes(r.idx))PROG.races.push(r.idx);big('SIEG!',`${r.def.name} · +$${pay.toLocaleString('de-DE')}`,'#7dff8a');passedJingle();}else{big('VERLOREN',text||'','#ff9a3c');failJingle();}endRace(win,true);saveGame(true);}
 function endRace(win,silent){const r=race;if(!r)return;race=null;for(const q of r.rivals)if(cars.includes(q)){if(q===P.inCar)exitCar(true);removeCar(q);}marker.visible=false;cpNext.visible=false;hideProg();}
-function openFlight(p){openPanel('Flugschule Solara',()=>LESSONS.map((L,k)=>({label:`Lektion ${k+1}: ${L.name}`,sub:`${L.air==='heli'?'Hubschrauber':L.air==='jet'?'Kampfjet':'Propellerflugzeug'} · Gold unter ${L.tg[0]} s${PROG.flight.includes(k)?' · bestanden':''}`,dis:k>PROG.flight.length,right:PROG.flight.includes(k)?'✓':k>PROG.flight.length?'🔒':'▶',act(){if(!canStartSide())return;closePanel();startLesson(k);}})),()=>'Flieg durch alle Ringe – je schneller, desto besser die Medaille.');}
+function openFlight(p){openPanel('Flugschule Solara',()=>LESSONS.map((L,k)=>({label:`Lektion ${k+1}: ${L.name}`,sub:`${L.air==='heli'?'Hubschrauber':L.air==='jet'?'Kampfjet':'Propellerflugzeug'} · Gold unter ${L.tg[0]} s${PROG.flight.includes(k)?' · bestanden':''}`,dis:k>PROG.flight.length,right:PROG.flight.includes(k)?'✓':k>PROG.flight.length?'gesperrt':'▶',act(){if(!canStartSide())return;closePanel();startLesson(k);}})),()=>'Flieg durch alle Ringe – je schneller, desto besser die Medaille.');}
 function startLesson(k){const L=LESSONS[k],s=L.start;const a=placeAir(L.air==='heli'?makeHeli(0xf1c40f,false):makePlane(L.air==='jet'?0x5d6d7e:0xf1c40f,L.air==='jet'),s.x,s.z,s.h);a.keep=true;
  startActivity({type:'flight',title:'FLUGSCHULE',sub:L.name,noHeat:true,air:a,timer:L.tg[2]+40,text:`Flugschule: ${L.name} – flieg durch alle Ringe`,
   start(A){if(P.inCar)exitCar(true);enterAir(a);A.rings=makeRings(L.rings.map(p=>new THREE.Vector3(p[0],p[1],p[2])));A.t=0;},
@@ -103,7 +103,7 @@ function startLesson(k){const L=LESSONS[k],s=L.start;const a=placeAir(L.air==='h
    if(L.land){const lp=L.landAt||{x:RWX,z:0};markAt(lp);A.text='Flugschule: Lande auf der Landebahn';const ok=L.landOk?L.landOk(A.air):Math.abs(A.air.g.position.x-RWX)<45&&Math.abs(A.air.g.position.z)<380;if(!A.air.airborne&&A.air.speed<8&&ok)lessonDone(A,k);}else lessonDone(A,k);},
   cleanup(A){if(A.rings){clearRings(A.rings);A.rings=null;}A.air.keep=false;}});}
 function lessonDone(A,k){const L=LESSONS[k],t=A.t;const medal=t<L.tg[0]?'GOLD':t<L.tg[1]?'SILBER':'BRONZE';const pay=Math.round(L.reward*(medal==='GOLD'?1.5:medal==='SILBER'?1.2:1));P.money+=pay;cashSound();if(!PROG.flight.includes(k))PROG.flight.push(k);endActivity(true,`${medal} · ${Math.round(t)} s · +$${pay.toLocaleString('de-DE')}`);}
-function openFight(p){const sp=p.data.sp;openPanel('Faustkampf-Club',()=>FIGHTERS.map((f,k)=>({label:`Kampf ${k+1}: ${f.name}`,sub:k<PROG.fight?'schon besiegt – Revanche möglich':k===PROG.fight?'Nur Fäuste erlaubt!':'gesperrt',dis:k>PROG.fight,right:k<PROG.fight?'✓':k===PROG.fight?'▶':'🔒',act(){if(!canStartSide())return;closePanel();startFight(sp,k);}})),()=>`Besiegte Gegner: ${PROG.fight}/5`);}
+function openFight(p){const sp=p.data.sp;openPanel('Faustkampf-Club',()=>FIGHTERS.map((f,k)=>({label:`Kampf ${k+1}: ${f.name}`,sub:k<PROG.fight?'schon besiegt – Revanche möglich':k===PROG.fight?'Nur Fäuste erlaubt!':'gesperrt',dis:k>PROG.fight,right:k<PROG.fight?'✓':k===PROG.fight?'▶':'gesperrt',act(){if(!canStartSide())return;closePanel();startFight(sp,k);}})),()=>`Besiegte Gegner: ${PROG.fight}/5`);}
 function startFight(sp,k){const f=FIGHTERS[k],R0=sp.ring;
  startActivity({type:'fight',title:'FAUSTKAMPF',sub:`Gegner: ${f.name}`,noHeat:true,text:`Faustkampf: Besiege ${f.name}`,
   start(A){if(P.inCar)exitCar(true);P.pos.set(R0.x-3,groundY(R0.x,R0.z),R0.z);P.face=Math.PI/2;camYaw=Math.PI/2;A.prevW=INV.cur;selectWeapon(0);A.op=spawnGang(R0.x+3,R0.z,false,false,{name:f.name,hp:f.hp,face:-Math.PI/2,topC:0x222222,pantsC:0x8b1a1a,extra:0});A.op.fistFight=true;A.op.state='fight';},
@@ -133,7 +133,7 @@ function exportTick(){if(!P.inCar||mission||activity||race||!isUnlocked('export'
  if(PROG.exp.length===10){P.money+=5000;toast('Alle Export-Aufträge erledigt! +$5.000 Bonus');}saveGame(true);}
 
 // ---------- Taxi-Zentrale ----------
-function openTaxiDepot(p){openPanel('Solara Taxi',()=>[{label:'Taxi-Job starten',sub:`Fahrgäste befördern · bisher ${PROG.taxi} Fahrten`,right:'🚕',act(){if(!canStartSide())return;closePanel();let c=cars.find(q=>q.vt==='taxi'&&q.mode==='parked'&&Math.hypot(q.pos.x-p.x,q.pos.z-p.z)<45);const sp=SPECIAL['10,7'];if(!c){const s=sp.cars[0];c=parkedCar(s.x,s.z,0,0,'taxi');}enterCar(c);startTaxi();}}],()=>'Tipp: In jedem Taxi startest du den Job auch mit <k>F</k>.');}
+function openTaxiDepot(p){openPanel('Solara Taxi',()=>[{label:'Taxi-Job starten',sub:`Fahrgäste befördern · bisher ${PROG.taxi} Fahrten`,right:'',act(){if(!canStartSide())return;closePanel();let c=cars.find(q=>q.vt==='taxi'&&q.mode==='parked'&&Math.hypot(q.pos.x-p.x,q.pos.z-p.z)<45);const sp=SPECIAL['10,7'];if(!c){const s=sp.cars[0];c=parkedCar(s.x,s.z,0,0,'taxi');}enterCar(c);startTaxi();}}],()=>'Tipp: In jedem Taxi startest du den Job auch mit <k>F</k>.');}
 
 // ---------- Orte & Fahrzeuge in der Stadt ----------
 function addExtraPlaces(){
@@ -187,8 +187,8 @@ function bizWorth(){let w=P.money;for(const id of BIZ.owned){const p=bizP(id);w+
 function openProperty(id){const p=bizP(id);if(p.role!==BIZ.role){toast(`Das passt nicht zu deiner Rolle (${BIZ_ROLES[BIZ.role].name})`);return;}
  openPanel(p.name,()=>{const own=BIZ.owned.includes(id);if(!own)return [{label:'Kaufen',sub:'Danach verdienst du hier Geld',price:p.price,act(){BIZ.owned.push(id);BIZ.up[id]=[];BIZ.safe[id]=0;BIZ.stock[id]=0;BIZ.pop[id]=1;big('GEKAUFT!',p.name,'#ffd23a');saveGame(true);}}];
   const L=[];
-  if(p.role==='club'){L.push({label:'Tresor leeren',sub:`Im Tresor: ${fmt$(BIZ.safe[id]||0)}`,right:'💰',act(){bizCollect(id);}});L.push({label:'Promo-Tour starten',sub:`Beliebtheit ${Math.round((BIZ.pop[id]||1)*100)} % · mehr Gäste, mehr Umsatz`,right:'▶',act(){closePanel();startPromo(id);}});}
-  else if(p.role==='autos'){L.push({label:'Auto beschaffen',sub:`Im Bestand: ${BIZ.stock[id]||0}/${bizCap(id)} Wagen · Verkauf läuft automatisch`,right:'▶',act(){closePanel();startProcure(id);}});L.push({label:'Einnahmen abholen',sub:`Kasse: ${fmt$(BIZ.safe[id]||0)}`,right:'💰',act(){bizCollect(id);}});}
+  if(p.role==='club'){L.push({label:'Tresor leeren',sub:`Im Tresor: ${fmt$(BIZ.safe[id]||0)}`,right:'',act(){bizCollect(id);}});L.push({label:'Promo-Tour starten',sub:`Beliebtheit ${Math.round((BIZ.pop[id]||1)*100)} % · mehr Gäste, mehr Umsatz`,right:'▶',act(){closePanel();startPromo(id);}});}
+  else if(p.role==='autos'){L.push({label:'Auto beschaffen',sub:`Im Bestand: ${BIZ.stock[id]||0}/${bizCap(id)} Wagen · Verkauf läuft automatisch`,right:'▶',act(){closePanel();startProcure(id);}});L.push({label:'Einnahmen abholen',sub:`Kasse: ${fmt$(BIZ.safe[id]||0)}`,right:'',act(){bizCollect(id);}});}
   else{const st=Math.floor(BIZ.stock[id]||0);L.push({label:'Lieferung starten',sub:`Lager: ${st}/${bizCap(id)} Einheiten · Wert ${fmt$(st*bizUnit(id))}`,right:st>0?'▶':'leer',dis:st<1,act(){closePanel();startDelivery(id);}});}
   for(const [k,n,c,v] of BIZ_UP[p.role]){const has=bizHas(id,k);L.push({label:n,sub:has?'eingebaut':v?`+${Math.round(v*100)} % ${p.role==='club'?'Umsatz':p.role==='autos'?'Verkaufswert':'Leistung'}`:k==='sec'?'Weniger Überfälle':'Mehr Platz',price:has?0:c,right:has?'✓':'',dis:has,act(){if(!BIZ.up[id])BIZ.up[id]=[];BIZ.up[id].push(k);big('UPGRADE',n,'#ffd23a');saveGame(true);}});}
   L.push({label:'Verkaufen',sub:`Du bekommst ${fmt$(p.price*.5)} zurück`,right:'↩',act(){BIZ.owned=BIZ.owned.filter(q=>q!==id);P.money+=p.price*.5+(BIZ.safe[id]||0);cashSound();toast('Verkauft');saveGame(true);}});
@@ -196,13 +196,13 @@ function openProperty(id){const p=bizP(id);if(p.role!==BIZ.role){toast(`Das pass
 function bizCollect(id){const v=Math.round(BIZ.safe[id]||0);if(v<=0){toast('Noch nichts drin');return;}BIZ.safe[id]=0;P.money+=v;cashSound();cashPop('+'+fmt$(v));saveGame(true);}
 function openBizApp(){if(!BIZ.active||mode!=='play')return;const R=BIZ_ROLES[BIZ.role];
  openPanel('Business-App',()=>{const L=[];for(const p of BIZ_PROPS.filter(q=>q.role===BIZ.role)){const own=BIZ.owned.includes(p.id);
-   L.push({label:(own?'✔ ':'')+p.name,sub:own?(p.role==='club'?`Tresor ${fmt$(BIZ.safe[p.id]||0)} · ${fmt$(bizClubRate(p.id))}/min`:p.role==='autos'?`${BIZ.stock[p.id]||0} Wagen · Kasse ${fmt$(BIZ.safe[p.id]||0)}`:`Lager ${Math.floor(BIZ.stock[p.id]||0)}/${bizCap(p.id)}`):`zu verkaufen · ${fmt$(p.price)}`,right:'📍',act(){const q=p.pos();waypoint={x:q.x,z:q.z};closePanel();toast('Wegpunkt gesetzt: '+p.name);}});}
-  if(BIZ.owned.length)L.push({label:'Alle Kassen per App abholen',sub:'Bequem, aber 10 % Gebühr',right:'💸',act(){let v=0;for(const id of BIZ.owned){v+=BIZ.safe[id]||0;BIZ.safe[id]=0;}v*=.9;P.money+=v;cashSound();toast('+'+fmt$(v));saveGame(true);}});
+   L.push({label:(own?'':'')+p.name,sub:own?(p.role==='club'?`Tresor ${fmt$(BIZ.safe[p.id]||0)} · ${fmt$(bizClubRate(p.id))}/min`:p.role==='autos'?`${BIZ.stock[p.id]||0} Wagen · Kasse ${fmt$(BIZ.safe[p.id]||0)}`:`Lager ${Math.floor(BIZ.stock[p.id]||0)}/${bizCap(p.id)}`):`zu verkaufen · ${fmt$(p.price)}`,right:'',act(){const q=p.pos();waypoint={x:q.x,z:q.z};closePanel();toast('Wegpunkt gesetzt: '+p.name);}});}
+  if(BIZ.owned.length)L.push({label:'Alle Kassen per App abholen',sub:'Bequem, aber 10 % Gebühr',right:'',act(){let v=0;for(const id of BIZ.owned){v+=BIZ.safe[id]||0;BIZ.safe[id]=0;}v*=.9;P.money+=v;cashSound();toast('+'+fmt$(v));saveGame(true);}});
   return L;},()=>{const w=bizWorth();const nx=BIZ_RANKS.find(r=>w<r[0]);return `<b>${R.icon} ${R.name}</b><br>Bargeld ${fmt$(P.money)} · Vermögen <b>${fmt$(w)}</b>${nx?`<br>Nächstes Ziel: ${nx[1]} ab ${fmt$(nx[0])}`:'<br>Du bist die Legende von Port Solara!'}`;});}
 function bizTick(dt){if(!BIZ.active||mode!=='play')return;
  for(const id of BIZ.owned){const p=bizP(id);
   if(p.role==='club'){BIZ.safe[id]=Math.min((BIZ.safe[id]||0)+bizClubRate(id)/60*dt,bizClubRate(id)*30);BIZ.pop[id]=Math.max(.8,(BIZ.pop[id]||1)-dt*.0004);}
-  else if(p.role==='autos'){p.sellT=(p.sellT??90)-dt*(1+bizBoost(id));if(p.sellT<=0){p.sellT=110;if((BIZ.stock[id]||0)>0){BIZ.stock[id]--;const v=Math.round(bizUnit(id)*(.8+Math.random()*.6));BIZ.safe[id]=(BIZ.safe[id]||0)+v;toast(`🚗 Wagen verkauft: +${fmt$(v)} (in der Kasse)`);}}}
+  else if(p.role==='autos'){p.sellT=(p.sellT??90)-dt*(1+bizBoost(id));if(p.sellT<=0){p.sellT=110;if((BIZ.stock[id]||0)>0){BIZ.stock[id]--;const v=Math.round(bizUnit(id)*(.8+Math.random()*.6));BIZ.safe[id]=(BIZ.safe[id]||0)+v;toast(`Wagen verkauft: +${fmt$(v)} (in der Kasse)`);}}}
   else{const rate=(p.role==='ware'?1:.6)/60*(1+(bizHas(id,'staff')?.3:0));BIZ.stock[id]=Math.min(bizCap(id),(BIZ.stock[id]||0)+rate*dt);}}
  const w=bizWorth();for(let k=BIZ.rank;k<BIZ_RANKS.length;k++){if(w>=BIZ_RANKS[k][0]){BIZ.rank=k+1;big('NEUER RANG',BIZ_RANKS[k][1],'#ffd23a');passedJingle();}}
  // Überfälle auf deine Geschäfte
@@ -242,11 +242,11 @@ function bizUnlocked(){const d=loadGame();return !!(d&&d.prog&&d.prog.story);}
 function openBizTitle(){let ov=$('bizsel');if(!ov||!ov.style){ov=document.createElement('div');ov.id='bizsel';document.body.appendChild(ov);}
  ov.style.cssText='position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(5,6,12,.86);font-family:Arial,sans-serif;color:#fff';
  const can=bizUnlocked(),cont=!!loadGame('portsolara_biz_v1');
- ov.innerHTML=`<div style="max-width:860px;width:92%;text-align:center"><h1 style="margin:0 0 6px;font-size:40px;letter-spacing:2px">💼 BUSINESS-MODUS</h1>
+ ov.innerHTML=`<div style="max-width:860px;width:92%;text-align:center"><h1 style="margin:0 0 6px;font-size:40px;letter-spacing:2px">BUSINESS-MODUS</h1>
   <p style="opacity:.85;margin:0 0 18px">Startkapital <b>$4.000.000</b> · Kaufe Geschäfte, Upgrades, Autos und Waffen und bau dein Imperium auf.</p>
   ${can?`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">${Object.entries(BIZ_ROLES).map(([k,r])=>`<button data-r="${k}" style="cursor:pointer;text-align:left;padding:14px;border-radius:12px;border:2px solid #ffd23a55;background:#151826;color:#fff"><div style="font-size:30px">${r.icon}</div><b style="font-size:17px">${r.name}</b><div style="font-size:13px;opacity:.8;margin-top:6px">${r.desc}</div></button>`).join('')}</div>
    ${cont?'<p><button data-c="1" style="cursor:pointer;margin-top:16px;padding:10px 22px;border-radius:10px;border:0;background:#ffd23a;font-weight:bold">Business-Spielstand fortsetzen ▶</button></p>':''}`
-  :'<p style="font-size:18px;background:#2a1a1a;padding:16px;border-radius:12px">🔒 Den Business-Modus schaltest du frei, indem du den <b>Story-Modus</b> komplett durchspielst (alle Missionen).</p>'}
+  :'<p style="font-size:18px;background:#2a1a1a;padding:16px;border-radius:12px">Den Business-Modus schaltest du frei, indem du den <b>Story-Modus</b> komplett durchspielst (alle Missionen).</p>'}
   <p><button data-x="1" style="cursor:pointer;margin-top:14px;padding:8px 18px;border-radius:10px;border:1px solid #fff5;background:transparent;color:#fff">Zurück</button></p></div>`;
  ov.onclick=e=>{const b=e.target.closest('button');if(!b)return;uiClick();if(b.dataset.x){ov.style.display='none';return;}if(b.dataset.r){ov.style.display='none';startBusiness(b.dataset.r);}if(b.dataset.c){ov.style.display='none';continueBusiness();}};}
 function bizEnterWorld(spawn){const sp=spawn||{x:SPECIAL['3,5'].door.x,z:SPECIAL['3,5'].door.z};P.pos.set(sp.x,0,sp.z);P.pos.y=groundY(sp.x,sp.z);P.face=Math.PI;camYaw=Math.PI;camPitch=.3;
@@ -262,10 +262,10 @@ function continueBusiness(){if(mode!=='title')return;const d=loadGame('portsolar
  const b=d.biz||{};Object.assign(BIZ,{role:b.role||'club',owned:b.owned||[],up:b.up||{},safe:b.safe||{},stock:b.stock||{},pop:b.pop||{},best:b.best||0,rank:b.rank||0,raid:null,raidT:600});
  applySave(d);mi=missions.length;storyDone=true;const q=(BIZ.owned.length?bizP(BIZ.owned[0]):BIZ_PROPS.find(p=>p.role===BIZ.role)).pos();bizEnterWorld({x:q.x+4,z:q.z+6});big('BUSINESS-MODUS',`${BIZ_ROLES[BIZ.role].name} · Vermögen ${fmt$(bizWorth())}`,'#ffd23a');}
 function netStatus(t){const e=$('netstat');if(e&&e.style)e.innerHTML=t;}
-function loadPeerJS(cb){if(window.Peer){cb();return;}const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';s.onload=()=>cb();s.onerror=()=>netStatus('❌ PeerJS konnte nicht geladen werden – bist du online?');document.head.appendChild(s);}
+function loadPeerJS(cb){if(window.Peer){cb();return;}const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js';s.onload=()=>cb();s.onerror=()=>netStatus('PeerJS konnte nicht geladen werden – bist du online?');document.head.appendChild(s);}
 function openNetTitle(){let ov=$('netsel');if(!ov||!ov.style){ov=document.createElement('div');ov.id='netsel';document.body.appendChild(ov);}
  ov.style.cssText='position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(5,6,12,.88);font-family:Arial,sans-serif;color:#fff';
- ov.innerHTML=`<div style="max-width:560px;width:92%;text-align:center"><h1 style="margin:0 0 6px;font-size:38px">🌐 ONLINE</h1><p style="opacity:.85">Spiel mit Freunden zusammen: freies Spiel, Duelle, Rennen und Koop-Aufträge.<br>Einer erstellt einen Raum, die anderen treten mit dem Code bei (bis zu 4 Spieler).</p>
+ ov.innerHTML=`<div style="max-width:560px;width:92%;text-align:center"><h1 style="margin:0 0 6px;font-size:38px">ONLINE</h1><p style="opacity:.85">Spiel mit Freunden zusammen: freies Spiel, Duelle, Rennen und Koop-Aufträge.<br>Einer erstellt einen Raum, die anderen treten mit dem Code bei (bis zu 4 Spieler).</p>
   <p><button data-h="1" style="cursor:pointer;padding:12px 26px;border-radius:12px;border:0;background:#3ee6ff;font-weight:bold;font-size:17px">Raum erstellen</button></p>
   <p><input id="netcode" maxlength="6" placeholder="CODE" style="text-transform:uppercase;font-size:20px;width:140px;text-align:center;padding:8px;border-radius:10px;border:0"> <button data-j="1" style="cursor:pointer;padding:10px 20px;border-radius:12px;border:0;background:#ffd23a;font-weight:bold">Beitreten</button></p>
   <div id="netstat" style="min-height:44px;margin:10px 0;font-size:15px"></div><p><button data-x="1" style="cursor:pointer;padding:8px 18px;border-radius:10px;border:1px solid #fff5;background:transparent;color:#fff">Zurück</button></p></div>`;
@@ -275,18 +275,18 @@ function netHost(){netStatus('Verbinde mit dem Server …');loadPeerJS(()=>{cons
  const peer=new window.Peer('portsolara-'+code);NET.peer=peer;NET.code=code;NET.host=true;
  peer.on('open',()=>{netStatus(`Dein Raum-Code: <b style="font-size:28px;letter-spacing:4px">${code}</b><br>Gib ihn deinen Freunden. <button id="netgo" style="margin-left:8px;padding:6px 14px;border-radius:8px;border:0;background:#7dff8a;font-weight:bold;cursor:pointer">Losspielen ▶</button>`);const g=$('netgo');if(g)g.onclick=()=>startOnlineWorld();});
  peer.on('connection',conn=>{if(NET.conns.length>=3){conn.on('open',()=>{conn.send({t:'full'});setTimeout(()=>conn.close(),300);});return;}netWire(conn);});
- peer.on('error',e=>netStatus('❌ Fehler: '+(e.type||e)));});}
+ peer.on('error',e=>netStatus('Fehler: '+(e.type||e)));});}
 function netJoin(code){netStatus('Verbinde …');loadPeerJS(()=>{const peer=new window.Peer();NET.peer=peer;NET.host=false;NET.code=code;
- peer.on('open',()=>{const conn=peer.connect('portsolara-'+code,{reliable:true});netWire(conn);conn.on('open',()=>{netStatus('✅ Verbunden! Es geht los …');setTimeout(startOnlineWorld,600);});});
- peer.on('error',e=>netStatus('❌ Raum nicht gefunden oder Fehler: '+(e.type||e)));});}
+ peer.on('open',()=>{const conn=peer.connect('portsolara-'+code,{reliable:true});netWire(conn);conn.on('open',()=>{netStatus('Verbunden! Es geht los …');setTimeout(startOnlineWorld,600);});});
+ peer.on('error',e=>netStatus('Raum nicht gefunden oder Fehler: '+(e.type||e)));});}
 function netWire(conn){NET.conns.push(conn);conn.on('open',()=>{conn.send({t:'hello',name:P.name||netName(),skin});if(NET.host)toast('Ein Spieler ist beigetreten!');});
  conn.on('data',m=>netRecv(m,conn));conn.on('close',()=>{NET.conns=NET.conns.filter(c=>c!==conn);const pl=NET.players.get(conn.peer);if(pl){netRemovePlayer(conn.peer);toast(pl.name+' hat den Raum verlassen');}if(!NET.host&&NET.on){big('VERBINDUNG GETRENNT','Der Host hat den Raum geschlossen','#ff5050');}});}
 function netSend(m,except){m.from=NET.peer&&NET.peer.id;for(const c of NET.conns){if(c===except||!c.open)continue;try{c.send(m);}catch(e){}}}
 function netRecv(m,conn){if(!m||!m.t)return;if(NET.host&&conn&&m.t!=='hello'){const fwd=Object.assign({},m);for(const c of NET.conns){if(c!==conn&&c.open)try{c.send(fwd);}catch(e){}}}
  const id=m.from||conn.peer;
  switch(m.t){
-  case 'full':netStatus('❌ Der Raum ist voll');break;
-  case 'hello':{netAddPlayer(id,m.name,m.skin);toast(`🌐 ${m.name} ist da!`);if(NET.host)for(const [pid,p] of NET.players){if(pid!==id)try{conn.send({t:'hello',from:pid,name:p.name,skin:p.skin});}catch(e){}}break;}
+  case 'full':netStatus('Der Raum ist voll');break;
+  case 'hello':{netAddPlayer(id,m.name,m.skin);toast(`${m.name} ist da!`);if(NET.host)for(const [pid,p] of NET.players){if(pid!==id)try{conn.send({t:'hello',from:pid,name:p.name,skin:p.skin});}catch(e){}}break;}
   case 'st':{const p=NET.players.get(id);if(p){p.st=m;p.lastT=time;}break;}
   case 'shot':netGotShot(m,id);break;
   case 'killed':{if(m.by===NET.peer.id){NET.score[NET.peer.id]=(NET.score[NET.peer.id]||0)+1;big('ERWISCHT!',`Punkte: ${NET.score[NET.peer.id]}`,'#7dff8a');netSend({t:'score',id:NET.peer.id,v:NET.score[NET.peer.id]});netDuelCheck();}break;}
@@ -345,13 +345,13 @@ function netTick(dt){if(!NET.on)return;netPlayersTick(dt);netCoopTick(dt);
 function netChatLine(t){const f=$('netchat');if(!f||!f.style)return;const d=document.createElement('div');d.textContent=t;f.appendChild(d);while(f.children.length>6)f.removeChild(f.firstChild);setTimeout(()=>{if(d.parentNode)d.parentNode.removeChild(d);},14000);}
 function netChatOpen(){if(!NET.on||NET.chatOpen)return;NET.chatOpen=true;const i=document.createElement('input');i.id='netin';i.maxLength=80;i.placeholder='Nachricht … (Enter senden, Esc abbrechen)';i.style.cssText='position:fixed;left:16px;bottom:220px;width:340px;z-index:70;padding:8px;border-radius:8px;border:0;font-size:15px';document.body.appendChild(i);try{document.exitPointerLock();}catch(e){}i.focus();
  i.onkeydown=e=>{e.stopPropagation();if(e.key==='Enter'){const t=i.value.trim();if(t){netSend({t:'chat',txt:t});netChatLine((P.name||'Ich')+': '+t);}i.remove();NET.chatOpen=false;clearKeys();lockMouse();}else if(e.key==='Escape'){i.remove();NET.chatOpen=false;clearKeys();}};}
-function openNetMenu(){if(!NET.on)return;openPanel(`Online · Raum ${NET.code}`,()=>{const L=[];for(const p of NET.players.values())L.push({label:'🌐 '+p.name,sub:NET.mode==='duel'?`Punkte: ${NET.score[p.id]||0}`:'Mitspieler',right:'📍',act(){const s=p.st;if(s){waypoint={x:s.x,z:s.z};closePanel();}}});
-  L.push({label:NET.pvp?'Freies Spiel: Schaden zwischen Spielern AN':'Freies Spiel: Schaden zwischen Spielern AUS',sub:'Nur für dich – im Duell zählt immer jeder Treffer',right:NET.pvp?'🔫':'🕊️',act(){NET.pvp=!NET.pvp;}});
-  if(NET.host){L.push({label:'Duell starten',sub:'Alle gegen alle in der Innenstadt – erster mit 10 Treffern gewinnt',right:'⚔️',act(){closePanel();hostMode({t:'mode',m:'duel',to:10});}});
-   RACES.forEach((r,k)=>L.push({label:'Rennen: '+r.name,sub:'Alle starten gleichzeitig',right:'🏁',act(){closePanel();hostMode({t:'mode',m:'race',k});}}));
-   L.push({label:'Koop-Auftrag: Kopfgeld',sub:'Schaltet zusammen eine Gang und ihre Zielperson aus',right:'🤝',act(){closePanel();const s=pick(COOP_SPOTS);hostMode({t:'mode',m:'coop',type:'bounty',pos:{x:s.x,z:s.z},title:'Kopfgeld: '+s.n});}});
-   L.push({label:'Modus beenden',sub:'Zurück ins freie Spiel',right:'⏹',act(){closePanel();hostMode({t:'mode',m:'end'});}});}
-  L.push({label:'Raum verlassen',sub:'Zurück zum Titelbildschirm',right:'🚪',act(){closePanel();try{NET.peer.destroy();}catch(e){}location.reload();}});return L;},
+function openNetMenu(){if(!NET.on)return;openPanel(`Online · Raum ${NET.code}`,()=>{const L=[];for(const p of NET.players.values())L.push({label:''+p.name,sub:NET.mode==='duel'?`Punkte: ${NET.score[p.id]||0}`:'Mitspieler',right:'',act(){const s=p.st;if(s){waypoint={x:s.x,z:s.z};closePanel();}}});
+  L.push({label:NET.pvp?'Freies Spiel: Schaden zwischen Spielern AN':'Freies Spiel: Schaden zwischen Spielern AUS',sub:'Nur für dich – im Duell zählt immer jeder Treffer',right:NET.pvp?'AN':'AUS',act(){NET.pvp=!NET.pvp;}});
+  if(NET.host){L.push({label:'Duell starten',sub:'Alle gegen alle in der Innenstadt – erster mit 10 Treffern gewinnt',right:'',act(){closePanel();hostMode({t:'mode',m:'duel',to:10});}});
+   RACES.forEach((r,k)=>L.push({label:'Rennen: '+r.name,sub:'Alle starten gleichzeitig',right:'',act(){closePanel();hostMode({t:'mode',m:'race',k});}}));
+   L.push({label:'Koop-Auftrag: Kopfgeld',sub:'Schaltet zusammen eine Gang und ihre Zielperson aus',right:'',act(){closePanel();const s=pick(COOP_SPOTS);hostMode({t:'mode',m:'coop',type:'bounty',pos:{x:s.x,z:s.z},title:'Kopfgeld: '+s.n});}});
+   L.push({label:'Modus beenden',sub:'Zurück ins freie Spiel',right:'',act(){closePanel();hostMode({t:'mode',m:'end'});}});}
+  L.push({label:'Raum verlassen',sub:'Zurück zum Titelbildschirm',right:'',act(){closePanel();try{NET.peer.destroy();}catch(e){}location.reload();}});return L;},
  ()=>`Raum-Code <b>${NET.code}</b> · ${NET.players.size+1} Spieler${NET.host?' · Du bist Host':''}<br><small>Enter = Chat · O = dieses Menü</small>`);}
 function startOnlineWorld(){if(NET.on)return;const ov=$('netsel');if(ov&&ov.style)ov.style.display='none';NET.on=true;window.__NETON=true;goFullscreen();ensureAudio();
  const d=loadGame();if(d)applySave(d);else{P.money=25000;P.name=netName();}mi=missions.length;storyDone=true;
@@ -367,5 +367,10 @@ function applyQuality(){const q=SET.quality;gfxDynamicScale=1;renderer.setPixelR
 function setGfxPreset(id){SET.gfxPreset=id;if(GFX_PRESETS[id]){const p=GFX_PRESETS[id];SET.gfxNear=p.near;SET.gfxFar=p.far;SET.gfxResolution=p.res;SET.quality=p.quality;}else if(id==='custom'){SET.quality=SET.gfxResolution<.6?0:SET.gfxResolution<1.05?1:2;}
  saveSettings();applyQuality();}
 
-function openPause(tab){if(mode!=='play')return;pauseOpen=true;mode='menu';for(const k in K)K[k]=false;aimHeld=false;fireHeld=false;try{(document.exitPointerLock||document.webkitExitPointerLock||(()=>{})).call(document);}catch(e){}$('pause').style.display='flex';try{$('pbiz').style.display=BIZ.active?'':'none';$('pnet').style.display=NET.on?'':'none';}catch(e){}showPauseTab(tab||pauseTab);uiClick();applyVolumes();}
+function openPause(tab){if(mode!=='play')return;pauseOpen=true;mode='menu';for(const k in K)K[k]=false;aimHeld=false;fireHeld=false;try{(document.exitPointerLock||document.webkitExitPointerLock||(()=>{})).call(document);}catch(e){}const mapMode=tab==='map';$('pause').classList.toggle('mapmode',mapMode);const ph=document.querySelector('#pause h1');if(ph)ph.textContent=mapMode?'KARTE':'PAUSE';const pr=$('presume');if(pr)pr.textContent=mapMode?'KARTE SCHLIESSEN (M)':'WEITER';if(!mapMode&&(tab||pauseTab)==='map')tab='stats';try{renderPauseInfo(mapMode);}catch(e){}$('pause').style.display='flex';try{$('pbiz').style.display=BIZ.active?'':'none';$('pnet').style.display=NET.on?'':'none';}catch(e){}showPauseTab(tab||pauseTab);uiClick();applyVolumes();}
+function renderPauseInfo(mapMode){const el=$('pinfo');if(!el)return;
+ const cur=mission?mission.name:(typeof storyDone!=='undefined'&&storyDone)?'Story abgeschlossen':(missions[mi]?'Als Nächstes: '+missions[mi].name:'–');
+ const it=(k,v)=>`<div class="pstat"><span>${k}</span><b>${v}</b></div>`;
+ el.innerHTML=it('Geld','$'+(P.money||0).toLocaleString('de-DE'))+it('Gesundheit',Math.max(0,Math.round(P.hp))+(P.armor>0?' · Rüstung '+Math.round(P.armor):''))+it('Fahndung',wanted>0?'★'.repeat(wanted):'keine')+it('Mission',cur)+it('Gebiet',areaName(P.pos.x,P.pos.z))+it('Uhrzeit',($('clock')&&$('clock').textContent)||'–')
+  +`<div class="pkeys">${mapMode?'M oder Esc: Karte schließen':'Esc oder P: Weiter · M: Karte'}</div>`;}
 function closePause(){if(!pauseOpen)return;pauseOpen=false;$('pause').style.display='none';if(!panelOpen){mode='play';last=performance.now();lockMouse();}uiClick();applyVolumes();}

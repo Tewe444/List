@@ -59,16 +59,44 @@ function ipAimed(n){const V=n.ip.v;if(!V.active||n.state==='ko'||n.state==='fly'
  const cnt=ipConscious(V);
  if(cnt===1&&ipInside(V,n.c.g.position.x,n.c.g.position.z)){V.rs={n,t:0};ipUnsit(n);propsOff(n);n.state='handsup';n.hT=99;npcSay(n,'clerk',2);return;}
  if(time>IP.hintT){IP.hintT=time+3.5;toast(`Zu viele Zeugen – noch ${cnt} Personen bei Bewusstsein`);}}
-function ipRobTick(V,dt){const r=V.rs,n=r.n;
- if(n.state==='ko'||n.state==='fly'||n.gone){toast('K.O. – jetzt rückt niemand mehr Geld heraus!');V.cool=time+120;V.rs=null;return;}
- const g=n.c.g.position,d=Math.hypot(P.pos.x-g.x,P.pos.z-g.z);
- if(d>16||P.inCar||P.dead||mode!=='play'){toast('Überfall abgebrochen');n.state='cower';n.cowT=1e9;V.rs=null;return;}
- const on=aiming();r.t+=dt*(on?1:.25);setProg(on?'Geld wird herausgegeben …':'Halte die Waffe auf die Person gerichtet!',r.t/4,'#ffd23a');
- if(r.t>=4){const amt=Math.round(RR(V.cash[0],V.cash[1]));P.money+=amt;cashSound();cashPop('+$'+amt);big('ÜBERFALL!',`${V.name}: +$${amt}`,'#7dff8a');
+// Überfall in Innenräumen: Kasse -> Bonusphase (Bank: Tresorraum, Juwelier: Vitrinen) -> mit Beute entkommen. Polizei-Countdown läuft ab Start.
+const IPROB_CFG={bank:{police:28,bonus:'vault',bonusT:12,bonusCash:[4500,8500]},jewel:{police:32,bonus:'cases',cases:4,caseT:2.6,caseCash:[650,1200]},other:{police:30}};
+function ipRobCfg(V){return V.kind==='bank'?IPROB_CFG.bank:V.zone==='jewel'?IPROB_CFG.jewel:IPROB_CFG.other;}
+function ipRobFinish(V,reason){const r=V.rs,n=r.n,amt=Math.round(r.loot||0);
+ if(amt>0){P.money+=amt;cashSound();cashPop('+$'+amt);const big1=r.bonusDone||r.bonusStarted;big(big1?(V.kind==='bank'?'BANKRAUB!':'GROSSER ÜBERFALL!'):'ÜBERFALL!',`${V.name}: +$${amt.toLocaleString('de-DE')}`,'#7dff8a');
   V.cool=time+300;PROG.sec=PROG.sec||{};const lv=Math.min(3,(PROG.sec[V.id]||0)+1);PROG.sec[V.id]=lv;PROG.ipRob=(PROG.ipRob||0)+1;
-  setWanted(Math.max(wanted,V.wantR||2));if(V.kind==='bank')alarmAt(new THREE.Vector3(V.cx,2.5,V.cz),15);
+  const heat=r.police?(V.wantR||2)+(r.bonusStarted?1:0):(V.wantA||1)+(r.bonusStarted?1:0);setWanted(Math.max(wanted,Math.min(5,heat)));
+  if(V.kind==='bank')alarmAt(new THREE.Vector3(V.cx,2.5,V.cz),15);
   setTimeout(()=>toast(V.kind==='bank'?`Die Bank rüstet auf – beim nächsten Mal mehr Wachen (Stufe ${lv}/3)`:`${V.name} rüstet auf – mehr Sicherheitsleute (Stufe ${lv}/3)`),1800);
-  V.rs=null;n.state='cower';n.cowT=1e9;saveGame(true);}}
+  saveGame(true);}
+ else{if(reason)toast(reason);V.cool=Math.max(V.cool||0,time+120);}
+ hideProg();V.rs=null;if(n&&n.state==='handsup'){n.state='cower';n.cowT=1e9;}}
+function ipRobTick(V,dt){const r=V.rs,n=r.n,C=ipRobCfg(V);
+ if(r.phase==null){r.phase='cash';r.loot=0;r.cash=Math.round(RR(V.cash[0],V.cash[1]));r.policeIn=C.police;r.police=false;r.caseIdx=0;r.caseT=0;
+  if(C.bonus==='vault')r.bonusCash=Math.round(RR(C.bonusCash[0],C.bonusCash[1]));}
+ const g=n.c.g.position,d=Math.hypot(P.pos.x-g.x,P.pos.z-g.z);
+ if(P.dead){r.loot=0;ipRobFinish(V,'Überfall gescheitert – die Beute ist weg.');return;}
+ if(mode!=='play')return;
+ // Weg vom Tatort = mit der bisherigen Beute entkommen
+ if(d>(r.phase==='cash'?16:30)||P.inCar){ipRobFinish(V,'Überfall abgebrochen');return;}
+ if((n.state==='ko'||n.state==='fly'||n.gone)&&r.phase==='cash'){if(r.loot>0)ipRobFinish(V);else ipRobFinish(V,'K.O. – jetzt rückt niemand mehr Geld heraus!');return;}
+ // Polizei-Countdown
+ if(!r.police){r.policeIn-=dt;if(r.policeIn<=0){r.police=true;setWanted(Math.max(wanted,V.wantR||2));toast('Die Polizei ist eingetroffen!');}}
+ const on=aiming();let lbl,f,col='#ffd23a';
+ if(r.phase==='cash'){r.t+=dt*(on?1:.25);r.loot=r.cash*Math.min(1,r.t/4);f=r.t/4;lbl=on?'Geld wird herausgegeben':'Halte die Waffe auf die Person gerichtet!';
+  if(r.t>=4){if(C.bonus){r.phase=C.bonus;r.t=0;n.state='cower';n.cowT=1e9;tone(880,.15,'sine',.06);
+    toast(C.bonus==='vault'?'Kasse leer! Der Tresorraum wird aufgebohrt – bleib im Gebäude oder hau ab.':'Kasse leer! Schlag die Vitrinen ein – oder hau mit der Beute ab.');}
+   else{r.phase='done';}}}
+ else if(r.phase==='vault'){r.t+=dt;r.bonusStarted=r.t>C.bonusT*.25;r.loot=r.cash+r.bonusCash*Math.min(1,r.t/C.bonusT);f=r.t/C.bonusT;lbl='Tresorraum wird aufgebohrt';col='#ff9a3c';
+  if(time>(r.sparkT||0)){r.sparkT=time+.12;flash(tmpV.set(g.x+RR(-.3,.3),g.y+1.2,g.z+RR(-.3,.3)),.2);if(Math.random()<.4)tone(2100+Math.random()*900,.05,'square',.01);}
+  if(r.t>=C.bonusT){r.phase='done';r.bonusDone=true;tone(660,.2,'sine',.07);toast('Tresor offen – nimm alles und verschwinde!');}}
+ else if(r.phase==='cases'){r.bonusStarted=r.caseIdx>=1;r.caseT+=dt;const share=Math.round(RR(C.caseCash[0],C.caseCash[1]));lbl=`Vitrine ${r.caseIdx+1}/${C.cases} wird eingeschlagen`;f=r.caseT/C.caseT;col='#ff9a3c';
+  if(r.caseT>=C.caseT){r.caseT=0;r.caseIdx++;r.loot+=share;if(!(window.SFX&&SFX.play('glass',{vol:.9})))tone(2600,.08,'triangle',.05);tone(1800,.12,'square',.03);flash(tmpV.set(P.pos.x,P.pos.y+1.1,P.pos.z),.25);
+   if(r.caseIdx>=C.cases){r.phase='done';r.bonusDone=true;toast('Alle Vitrinen leer – jetzt nichts wie weg!');}}
+  if(r.phase==='cases')r.loot=Math.max(r.loot,r.cash);}
+ if(r.phase==='done'){lbl='Verschwinde aus dem Gebäude!';f=1;col='#7dff8a';}
+ const cop=r.police?' · POLIZEI IST DA':r.policeIn<12?` · Polizei in ${Math.ceil(r.policeIn)} s`:'';if(r.police)col='#ff5050';
+ setProg(`${lbl} – Beute $${Math.round(r.loot).toLocaleString('de-DE')}${cop}`,f,col);}
 // ---------- pro Bild ----------
 function ipTick(dt){if(mode!=='play'&&mode!=='cine'&&mode!=='mcine')return;IP.t-=dt;
  if(IP.t<=0){IP.t=.4;const px=mode==='play'?P.pos.x:camera.position.x,pz=mode==='play'?P.pos.z:camera.position.z;
@@ -85,8 +113,8 @@ function ipVenueTick(V,dt){if(V.queue&&V.queue.length)for(let k=0;k<2&&V.queue.l
  // Metalldetektor (Bank): Waffe in der Hand = Alarm
  if(V.metal&&!V.alarm&&!P.inCar&&!P.dead&&!mission){const armed=INV.cur!==0;
   if(armed&&pin){for(let k=0;k<4;k++)setTimeout(()=>tone(k%2?1050:1500,.12,'square',.05,new THREE.Vector3(V.metal.x,1.5,V.metal.z)),k*140);
-   toast('🚨 Metalldetektor! Waffe entdeckt – der Sicherheitsdienst greift ein!');ipAlarm(V,'metal');}
-  else if(armed&&time>IP.doorWarnT){const ex=V.exits[0];if(Math.hypot(P.pos.x-ex[2],P.pos.z-ex[3])<8){IP.doorWarnT=time+12;toast('⚠️ Metalldetektor am Eingang – steck die Waffe weg (Taste 1 = Fäuste), sonst gibt es Alarm!');}}}
+   toast('Metalldetektor! Waffe entdeckt – der Sicherheitsdienst greift ein!');ipAlarm(V,'metal');}
+  else if(armed&&time>IP.doorWarnT){const ex=V.exits[0];if(Math.hypot(P.pos.x-ex[2],P.pos.z-ex[3])<8){IP.doorWarnT=time+12;toast('Metalldetektor am Eingang – steck die Waffe weg (Taste 1 = Fäuste), sonst gibt es Alarm!');}}}
  // Hinweise während eines Überfalls
  if(V.alarm&&V.hostile&&pin&&!V.rs&&V.rob!==false&&!mission&&V.cool<time&&isUnlocked('store')){const c=ipConscious(V);if(c!==V.cnt){V.cnt=c;
   if(c===1)toast('Nur noch eine Person bei Bewusstsein – richte deine Waffe auf sie!');else if(c===0)toast('Niemand mehr da, der dir Geld geben könnte.');else if(c<=4)toast(`Noch ${c} Personen bei Bewusstsein`);}}
@@ -224,7 +252,7 @@ function updateSky(dt){
  stars.position.copy(camera.position);sky.position.copy(camera.position);
  moonMesh.position.copy(camera.position).addScaledVector(tmpV.set(-sunDir.x,-sunDir.y,-.25).normalize(),2200);moonMesh.visible=sunDir.y<.12;
  envT-=dt;if(envT<=0||lastEnvTod<0){envT=4;if(Math.abs(tod-lastEnvTod)>.004||lastEnvTod<0){updateEnv();lastEnvTod=tod;}}
- const hh=Math.floor(tod*24)%24,mm=Math.floor(tod*24*60)%60;$('clock').textContent=`🕒 ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+ const hh=Math.floor(tod*24)%24,mm=Math.floor(tod*24*60)%60;$('clock').textContent=`${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
 }
 function zoneCol(z){const n=z.name;return z.col?z.col:z.military?'#56623a':/Nordpark/.test(n)?'#3f7d34':/Funland/.test(n)?'#7d5f86':/Schrott/.test(n)?'#6a5a44':/JVA/.test(n)?'#6f6f6f':/Arena/.test(n)?'#3f8f3a':/Stunt/.test(n)?'#8a7350':'#4a4740';}
 function renderBaseMap(){const g=baseMap.getContext('2d');const X=x=>(x-MX0)*BS,Z=z=>(z-MZ0)*BS,L=v=>v*BS;
@@ -253,9 +281,8 @@ function renderBaseMap(){const g=baseMap.getContext('2d');const X=x=>(x-MX0)*BS,
  g.fillStyle='#7c7c78';g.fillRect(X(AIRX0),Z(AIRZ0),L(AIRX1-AIRX0),L(AIRZ1-AIRZ0));g.fillStyle='#48484a';g.fillRect(X(RWX-23),Z(-360),L(46),L(720));g.fillStyle='#646468';g.fillRect(X(HALF),Z(-7),L(AIRX0-HALF),L(14));
  g.fillStyle='#b99a6c';g.fillRect(X(870),Z(-2333),L(380),L(30));
  g.fillStyle='#8a6a45';g.fillRect(X(PIERX-5),Z(WATER_Z-10),L(10),L(80));
- g.textAlign='center';g.textBaseline='middle';
- for(const z of ZONES){if(z.ring)continue;const cx=z.cx!=null?z.cx:(z.x0+z.x1)/2,cz=z.cz!=null?z.cz:(z.z0+z.z1)/2;const big=!!z.region;g.font=big?'italic bold 15px Arial':'bold 10px Arial';g.fillStyle=big?'rgba(255,255,255,.42)':'rgba(255,255,255,.72)';g.strokeStyle='rgba(0,0,0,.45)';g.lineWidth=3;const t=z.name.replace(' – Sperrgebiet','');g.strokeText(t,X(cx),Z(cz));g.fillText(t,X(cx),Z(cz));}
- g.font='italic bold 22px Arial';g.fillStyle='rgba(255,255,255,.5)';g.fillText('PORT SOLARA',X(0),Z(-120));}
+ // Gebietsnamen werden live in drawBigMap gezeichnet (landmarks.js), damit sie beim Zoomen scharf bleiben
+}
 function areaName(x,z){
  for(const q of ZONES){if(q.ring)continue;if(q.cx!=null){if(Math.hypot(x-q.cx,z-q.cz)<q.r)return q.name;}else if(x>q.x0&&x<q.x1&&z>q.z0&&z<q.z1)return q.name;}
  if(terrainH(x,z)<SEA_Y-.4&&!(Math.abs(x)<=HALF+ROAD&&Math.abs(z)<=HALF+ROAD))return z>WATER_Z-40&&x>-1000&&x<1100?'Bucht von Solara':'Offenes Meer';if(z>COAST-4&&x>-850&&x<1000)return 'Sonnenstrand';

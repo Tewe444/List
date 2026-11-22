@@ -13,7 +13,7 @@ const tmpM=new THREE.Matrix4(),tmpQ=new THREE.Quaternion(),tmpE=new THREE.Euler(
 
 // ================= RENDERER =================
 const STORED_SET=(()=>{try{return JSON.parse(localStorage.getItem('portsolara_settings'))||{};}catch(e){return {};}})();
-const SET=Object.assign({quality:1,gfxPreset:'normal',gfxNear:30,gfxFar:100,gfxResolution:.85,autoQuality:true,autoSlowdown:true,music:.5,sfx:.8,voice:false,sens:1,footMusic:true},STORED_SET);
+const SET=Object.assign({quality:1,gfxPreset:'normal',gfxNear:30,gfxFar:100,gfxResolution:.85,autoQuality:true,autoSlowdown:true,music:.5,sfx:.8,voice:false,sens:1,footMusic:false,motionBlur:0,ao:1,npcVoices:1,voiceVol:.9,voiceLang:'de'},STORED_SET);
 if(!STORED_SET.gfxPreset){const legacy=Number(STORED_SET.quality);SET.gfxPreset=legacy===0?'leicht':legacy>=2?'ultra':'normal';}
 if(!(SET.v>=2)){SET.voice=false;SET.v=2;}
 const GFX_PRESETS={potato:{near:18,far:55,res:.38,quality:0},leicht:{near:33,far:80,res:.62,quality:0},normal:{near:33,far:105,res:.82,quality:1},ultra:{near:53,far:155,res:1.15,quality:2}};
@@ -24,19 +24,20 @@ let cullCar=SET.gfxFar,cullPed=SET.gfxFar;
 const getEffectiveGfxFar=()=>Math.max(40,Math.round(SET.gfxFar*perfVisibilityScale));
 const getEffectiveGfxNear=()=>Math.min(getEffectiveGfxFar()-10,Math.max(10,Math.round(SET.gfxNear*perfVisibilityScale)));
 let gfxDynamicScale=1;
-const PR=()=>Math.max(.35,Math.min(devicePixelRatio*(SET.gfxResolution||.85)*gfxDynamicScale,[1,1.25,1.75][SET.quality]||1.25));
-const renderer=new THREE.WebGLRenderer({antialias:SET.quality>=2,powerPreference:'high-performance'});
+const PR=()=>Math.max(.35,Math.min(devicePixelRatio*(SET.gfxResolution||.85)*gfxDynamicScale,[1,1.25,1.5][SET.quality]||1.25));
+const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance',stencil:false});
 renderer.setPixelRatio(PR());
 renderer.setSize(innerWidth,innerHeight);
 renderer.shadowMap.enabled=SET.quality>0;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;
-document.body.prepend(renderer.domElement);renderer.domElement.style.display='none';
-const scene=new THREE.Scene();
+document.body.prepend(renderer.domElement);{try{const gl=renderer.getContext(),ext=gl.getExtension('WEBGL_debug_renderer_info'),gpu=ext?String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)):'';window.__gpuName=gpu;if(/swiftshader|llvmpipe|software|basic render|microsoft basic/i.test(gpu))setTimeout(()=>{try{toast('Hardware-Beschleunigung im Browser ist aus – das Spiel läuft auf der CPU und wird sehr langsam. Einstellungen > System > Grafikbeschleunigung aktivieren.');}catch(e){}},9000);}catch(e){}}renderer.domElement.style.display='none';
+const scene=new THREE.Scene();scene.matrixAutoUpdate=false; // Szene bewegt sich nie: erzwingt sonst jedes Bild die Neuberechnung aller ~20.000 Objekte
 scene.fog=new THREE.Fog(0xb9d3ea,220,1500);
 const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,0.5,40500);
 const pmrem=new THREE.PMREMGenerator(renderer);
 
 const rt=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{type:THREE.HalfFloatType,samples:SET.quality>=2?4:SET.quality===1?2:0});
+rt.depthTexture=new THREE.DepthTexture(innerWidth,innerHeight);rt.depthTexture.type=THREE.UnsignedIntType;
 const composer=new EffectComposer(renderer,rt);
 composer.setPixelRatio(renderer.getPixelRatio());composer.setSize(innerWidth,innerHeight);
 composer.addPass(new RenderPass(scene,camera));
@@ -46,12 +47,50 @@ const sanitize=new ShaderPass({uniforms:{tDiffuse:{value:null}},
  fragmentShader:`uniform sampler2D tDiffuse;varying vec2 vUv;void main(){vec4 c=texture2D(tDiffuse,vUv);vec3 r=min(max(c.rgb,vec3(0.)),vec3(12.));float s=c.r+c.g+c.b;if(any(isnan(c.rgb))||!(s>=-1.0))r=vec3(0.);gl_FragColor=vec4(r,1.);}`});
 composer.addPass(sanitize);
 const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.35,0.55,0.92);
+{const bs=bloom.setSize.bind(bloom);bloom.setSize=(w,h)=>bs(Math.max(1,Math.round(w/2)),Math.max(1,Math.round(h/2)));bloom.setSize(innerWidth,innerHeight);} // Bloom in halber Auflösung: kaum sichtbar, deutlich günstiger
+// Motion Blur (Kamera-Bewegungsunschärfe): nur aktiv, wenn in den Einstellungen eingeschaltet
+const motionBlur=new ShaderPass({uniforms:{tDiffuse:{value:null},uVel:{value:new THREE.Vector2()},uZoom:{value:0}},
+ vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`uniform sampler2D tDiffuse;uniform vec2 uVel;uniform float uZoom;varying vec2 vUv;void main(){vec2 d=uVel+(vUv-.5)*uZoom;vec4 c=vec4(0.);for(int i=0;i<10;i++){float t=float(i)/9.-.5;c+=texture2D(tDiffuse,vUv+d*t);}gl_FragColor=c/10.;}`});
+motionBlur.enabled=false;
+// Tiefeneffekt: Umgebungsverdeckung (SSAO) nur aus dem Tiefenpuffer – Ecken, Fugen und Bodenkontakt werden dunkler
+const aoPass=new ShaderPass({uniforms:{tDiffuse:{value:null},tDepth:{value:rt.depthTexture},uNear:{value:.5},uFar:{value:6000},uRes:{value:new THREE.Vector2(innerWidth,innerHeight)},uProj:{value:500},uStrength:{value:.85},uRadius:{value:1.6}},
+ vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+ fragmentShader:`uniform sampler2D tDiffuse,tDepth;uniform float uNear,uFar,uProj,uStrength,uRadius;uniform vec2 uRes;varying vec2 vUv;
+ float lin(vec2 uv){float d=texture2D(tDepth,uv).x;return (uNear*uFar)/(uFar-d*(uFar-uNear));}
+ void main(){vec4 col=texture2D(tDiffuse,vUv);float d0r=texture2D(tDepth,vUv).x;if(d0r>=.99999){gl_FragColor=col;return;}
+  float d0=lin(vUv);if(d0>220.){gl_FragColor=col;return;}
+  float rp=clamp(uRadius*uProj/d0,3.,60.);float n=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));float ao=0.;
+  for(int i=0;i<10;i++){float fi=float(i);float a=(fi+n)*2.39996;float r=rp*(fi+1.)/10.;vec2 o=vec2(cos(a),sin(a))*r/uRes;
+   float ds=lin(vUv+o);float diff=d0-ds;ao+=clamp(diff/(uRadius*.6),0.,1.)*(1.-smoothstep(uRadius*1.2,uRadius*3.5,diff));}
+  ao=clamp(ao/10.,0.,1.);float fade=1.-smoothstep(120.,220.,d0);col.rgb*=1.-uStrength*ao*fade;gl_FragColor=col;}`});
+aoPass.enabled=false;
+// direkt nach dem Rendern einfügen und immer den Tiefenpuffer des gerade gerenderten Ziels lesen
+if(!composer.renderTarget2.depthTexture||composer.renderTarget2.depthTexture===rt.depthTexture){composer.renderTarget2.depthTexture=new THREE.DepthTexture(innerWidth,innerHeight);composer.renderTarget2.depthTexture.type=THREE.UnsignedIntType;}
+{const r0=aoPass.render.bind(aoPass);aoPass.render=function(renderer,writeBuffer,readBuffer,dt,mask){this.uniforms.tDepth.value=readBuffer.depthTexture;return r0(renderer,writeBuffer,readBuffer,dt,mask);};}
+composer.insertPass(aoPass,1);
+composer.addPass(motionBlur);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},vig:{value:.4},sat:{value:1.22},con:{value:1.15}},
  vertexShader:`varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
  fragmentShader:`uniform sampler2D tDiffuse;uniform float vig,sat,con;varying vec2 vUv;void main(){vec4 c=texture2D(tDiffuse,vUv);float l=dot(c.rgb,vec3(.299,.587,.114));c.rgb=mix(vec3(l),c.rgb,sat);c.rgb=clamp((c.rgb-.5)*con+.5,0.,1.);c.rgb=mix(c.rgb,c.rgb*c.rgb*(3.-2.*c.rgb),.35);c.rgb*=mix(vec3(1.0,.995,.985),vec3(1.06,1.0,.92),smoothstep(.12,.85,l));float d=distance(vUv,vec2(.5));c.rgb*=1.-vig*smoothstep(.38,.9,d);gl_FragColor=c;}`});
 composer.addPass(grade);
+const MB={prevVP:new THREE.Matrix4(),prevPos:new THREE.Vector3(),has:false,v:new THREE.Vector3(),f:new THREE.Vector3()};
+function aoTick(){const on=!!SET.ao&&SET.gfxPreset!=='potato'&&mode!=='title';aoPass.enabled=on;if(!on)return;const u=aoPass.uniforms;u.uNear.value=camera.near;u.uFar.value=camera.far;
+ const sz=renderer.getDrawingBufferSize(tmpAOV);u.uRes.value.copy(sz);u.uProj.value=sz.y/(2*Math.tan(camera.fov*Math.PI/360));}
+const tmpAOV=new THREE.Vector2();
+function motionBlurTick(){try{aoTick();}catch(e){aoPass.enabled=false;}const on=!!SET.motionBlur&&(mode==='play'||mode==='cine'||mode==='mcine');
+ if(!on){motionBlur.enabled=false;MB.has=false;return;}
+ camera.updateMatrixWorld();const vp=tmpMB.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);
+ if(MB.has){camera.getWorldDirection(MB.f);MB.v.copy(camera.position).addScaledVector(MB.f,60).applyMatrix4(MB.prevVP);
+  const px=MB.v.x*.5+.5,py=MB.v.y*.5+.5;let vx=(.5-px),vy=(.5-py);const l=Math.hypot(vx,vy),mx=.035;if(l>mx){vx*=mx/l;vy*=mx/l;}if(l>.25){vx=0;vy=0;} // Schnitt/Teleport: kein Blur
+  const fw=MB.v.copy(camera.position).sub(MB.prevPos).dot(MB.f);const zoom=Math.min(.05,Math.max(0,fw*.02));
+  motionBlur.uniforms.uVel.value.set(vx,vy);motionBlur.uniforms.uZoom.value=zoom;motionBlur.enabled=(Math.abs(vx)+Math.abs(vy)>.0008||zoom>.003);}
+ else motionBlur.enabled=false;
+ MB.prevVP.copy(vp);MB.prevPos.copy(camera.position);MB.has=true;}
+const tmpMB=new THREE.Matrix4();
+{const cr=composer.render.bind(composer);composer.render=function(dt){try{motionBlurTick();}catch(e){motionBlur.enabled=false;}return cr(dt);};}
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
 
 const allMats=[];
@@ -111,7 +150,7 @@ const MATS={
  glass:[fmat('glass',0xe4f1ff,.08,.85),fmat('glass',0xd2e6dc,.1,.85),fmat('glass',0xeee2cc,.12,.8),fmat('glass',0xc8d4f0,.07,.9)],
  office:[fmat('office',0xffffff),fmat('office',0xd8dde4),fmat('office',0xe9dfcd)],
  brick:[fmat('brick',0xffffff),fmat('brick',0xdcc6b4),fmat('brick',0xbcaaa2)],
- plaster:[0xf3e3c3,0xe9c9b0,0xcfe0e8,0xf4f2ea,0xe7d0e4,0xd9e8c9,0xf0c9a0,0xbfd7ea].map(c=>fmat('plaster',c)),
+ plaster:[0xf7b8c8,0x93dcd4,0xc4ecc9,0xf8e4a3,0xd9c6f0,0xf7c7a0,0xf6f2e8,0xaad6f3,0xffd0dc,0xb8f0e6].map(c=>fmat('plaster',c)),
  shop:[fmat('shop',0xffffff,.6)],
  warehouse:[fmat('warehouse',0xc9ccd0),fmat('warehouse',0xb4c2ae),fmat('warehouse',0xd0b9a0),fmat('warehouse',0xa9b8cc)],
  house:[0xf6efe2,0xf3dcc8,0xdfeaf0,0xe9f0dc,0xf2e2ea,0xfaf3d2,0xe6e0d4].map(c=>fmat('house',c,.85)),

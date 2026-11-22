@@ -4,8 +4,8 @@
 function buildBodyGeo(s){const B=GB();
  const st=SK.statur[s.statur]||'Normal',fem=s.koerper===1;const P0=STATUR_P[st]||STATUR_P.Normal;
  const W=P0.w,belly=P0.belly,shW=(fem?.9:1)*P0.sh,hipW=(fem?1.12:1)*W,bust=fem?.035:0;
- const top=SK.oberteil[s.oberteil]||'T-Shirt',pants=SK.hose[s.hose]||'Jeans',hair=SK.frisur[s.frisur]||'Kurz',ex=SK.extra[s.extra]||'Nichts';
- const longSleeve=top==='Hoodie'||top==='Jacke'||top==='Hemd'||top==='Sakko',noSleeve=top==='Tanktop';
+ const top0=SK.oberteil[s.oberteil]||'T-Shirt',shortHemd=top0==='Hawaiihemd'||top0==='Poloshirt',top=shortHemd?'Hemd':top0,pants=SK.hose[s.hose]||'Jeans',hair=SK.frisur[s.frisur]||'Kurz',ex=SK.extra[s.extra]||'Nichts';
+ const longSleeve=top==='Hoodie'||top==='Jacke'||(top==='Hemd'&&!shortHemd)||top==='Sakko',noSleeve=top==='Tanktop';
  const wTorso=(y,x)=>{const ax=Math.abs(x);let w;
   if(y<.98)w=[[BI.hips,1]];else if(y<1.12){const t=smooth(.98,1.12,y);w=[[BI.hips,1-t],[BI.spine,t]];}else if(y<1.27){const t=smooth(1.12,1.27,y);w=[[BI.spine,1-t],[BI.chest,t]];}else if(y<1.47)w=[[BI.chest,1]];else{const t=smooth(1.47,1.54,y);w=[[BI.chest,1-t],[BI.neck,t]];}
   if(y>1.3&&ax>.13){const t=smooth(.13,.2*shW,ax)*smooth(1.3,1.42,y)*.45;const arm=x<0?BI.armL:BI.armR;w=w.map(q=>[q[0],q[1]*(1-t)]);w.push([arm,t]);}
@@ -62,6 +62,7 @@ function buildBodyGeo(s){const B=GB();
  if(top==='Jacke'||top==='Sakko'){gbEllip(B,0,1.2,.105*W+belly*.6+bust*.4,.008,.26,.012,top==='Sakko'?12:9,(px,py)=>py>1.27?[[BI.chest,1]]:[[BI.spine,1]],6,10);
   for(const sx of [-1,1])gbEllip(B,sx*.06,1.4,.1,.045,.07,.02,1,[[BI.chest,1]],8,5,(x,y,z)=>[x,y,z+.3*(1-y)]);}
  if(top==='Sakko')gbEllip(B,0,1.32,.118*W+bust,.026,.13,.012,13,[[BI.chest,1]],8,8,(x,y,z)=>[x*(1-.3*(1-y)),y,z]);
+ if(top0==='Hawaiihemd'){for(let k=0;k<16;k++){const a=k*2.399,yy=1.02+((k*37)%44)/100,front=k%2===0;gbEllip(B,Math.sin(a)*.085*W,yy,front?(.104*W+belly*.5+bust*.6):-(.098*W),.024,.024,.012,12,[[BI.chest,yy>1.2?1:.5],[BI.spine,yy>1.2?0:.5]],6,4);}}
  if(top==='Hemd'){for(const sx of [-1,1])gbEllip(B,sx*.035,1.5,.055,.04,.03,.02,12,[[BI.chest,.6],[BI.neck,.4]],8,5);for(let k=0;k<4;k++)gbEllip(B,0,1.42-k*.085,.112*W+belly*(k>1?.8:.2)+bust*(k<2?.7:.2),.007,.007,.004,12,[[k<2?BI.chest:BI.spine,1]],6,3);}
  if(pants==='Jeans'||pants==='Stoffhose')gbRings(B,[{y:.985,rx:.176*hipW,rzF:.107*W+belly*.35,rzB:.127*W*(fem?1.1:1)},{y:1.02,rx:.168*hipW,rzF:.106*W+belly*.6,rzB:.118*W}],18,()=>11,()=>[[BI.hips,1]],false,false);
  if(pants==='Rock'){const r=[];for(let k=0;k<6;k++){const t=k/5,y=1.0-t*.42;r.push({y,rx:(.175+t*.11)*hipW,rzF:(.12+t*.1)*W,rzB:(.13+t*.1)*W});}gbRings(B,r,18,()=>2,(y,x)=>{const t=smooth(.98,.62,y)*.6;const leg=x<0?BI.legL:BI.legR;return [[BI.hips,1-t],[leg,t]];},false,false);}

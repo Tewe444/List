@@ -25,17 +25,18 @@ function updateAircraftWorld(dt){
    if(a.deadT<=0&&a.g.position.distanceTo(P.pos)>120&&!a.keep){scene.remove(a.g);aircraft.splice(i,1);}}}
 }
 function updatePoliceHeli(dt){
- if(wanted>=3&&!policeHeli&&mode==='play'){heliRespawnT-=dt;if(heliRespawnT<=0){const a=makeHeli(0x1c2c4c,false,true);a.police=true;a.hp=750;a.mode='ai';a.spool=1;const ang=Math.random()*6.28;a.g.position.set(P.pos.x+Math.cos(ang)*230,80,P.pos.z+Math.sin(ang)*230);aircraft.push(a);policeHeli=a;heliRespawnT=4;}}
+ if(wanted>=4&&!policeHeli&&mode==='play'){heliRespawnT-=dt;if(heliRespawnT<=0){const a=makeHeli(0x1c2c4c,false,true);a.police=true;a.hp=750;a.mode='ai';a.spool=1;const ang=Math.random()*6.28;a.g.position.set(P.pos.x+Math.cos(ang)*230,80,P.pos.z+Math.sin(ang)*230);aircraft.push(a);policeHeli=a;heliRespawnT=4;}}
  const a=policeHeli;if(!a)return;
- if(wanted<3||mode!=='play'){a.vel.lerp(tmpV.set(0,10,-40),Math.min(1,dt));a.g.position.addScaledVector(a.vel,dt);a.leave=(a.leave||0)+dt;a.spin+=dt*32;a.rotor.rotation.y=a.spin;searchLight.intensity=0;
-  if(a.leave>10){scene.remove(a.g);aircraft.splice(aircraft.indexOf(a),1);policeHeli=null;heliRespawnT=6;}return;}
- a.leave=0;a.orbit=(a.orbit||Math.random()*6)+dt*.35;const tx=P.pos.x+Math.cos(a.orbit)*32,tz=P.pos.z+Math.sin(a.orbit)*32;
+ if(a.g.position.distanceTo(P.pos)>150)a.lostT=(a.lostT||0)+dt;else a.lostT=0;
+ if(wanted<4||mode!=='play'||a.lostT>6){if(a.lostT>6&&!a.lostMsg){a.lostMsg=true;toast('Der Polizei-Heli hat dich verloren!');}a.vel.lerp(tmpV.set(0,10,-40),Math.min(1,dt));a.g.position.addScaledVector(a.vel,dt);a.leave=(a.leave||0)+dt;a.spin+=dt*32;a.rotor.rotation.y=a.spin;searchLight.intensity=0;
+  if(a.leave>10){scene.remove(a.g);aircraft.splice(aircraft.indexOf(a),1);policeHeli=null;heliRespawnT=a.lostMsg?45:6;}return;}
+ a.leave=0;a.orbit=(a.orbit||Math.random()*6)+dt*.35;const tx=P.pos.x+Math.cos(a.orbit)*48,tz=P.pos.z+Math.sin(a.orbit)*48;
  let top=0;for(const sd of solidsNear(tx,tz,30))if(sd.h>top)top=sd.h;const ty=Math.max(P.pos.y+28,top+16);
- const d=tmpV.set(tx-a.g.position.x,ty-a.g.position.y,tz-a.g.position.z);const l=d.length();d.normalize().multiplyScalar(Math.min(45,l*.9));a.vel.lerp(d,Math.min(1,dt*1.5));
+ const d=tmpV.set(tx-a.g.position.x,ty-a.g.position.y,tz-a.g.position.z);const l=d.length();d.normalize().multiplyScalar(Math.min(28,l*.9));a.vel.lerp(d,Math.min(1,dt*1.5));
  a.g.position.addScaledVector(a.vel,dt);a.h=lerpAng(a.h,Math.atan2(P.pos.x-a.g.position.x,P.pos.z-a.g.position.z),dt*2);a.g.rotation.y=a.h;a.body.rotation.x=.12;
  a.spin+=dt*32;a.rotor.rotation.y=a.spin;a.tr.rotation.x=a.spin*1.4;
  searchLight.intensity=night*450;searchLight.position.copy(a.g.position);slTgt.position.copy(P.pos);
- a.atkT=(a.atkT??3)-dt;if(a.atkT<=0){a.burst=7;a.atkT=4;}
+ a.atkT=(a.atkT??3)-dt;if(a.atkT<=0){a.atkT=7;if(a.g.position.distanceTo(P.pos)<90)a.burst=4;}
  if(a.burst>0){a.bT=(a.bT||0)-dt;if(a.bT<=0){a.bT=.13;a.burst--;
   const from=a.g.position.clone().add(tmpV.set(0,.6,0));const to=P.inAir?P.inAir.g.position.clone():new THREE.Vector3(P.pos.x,P.pos.y+1.1,P.pos.z);const dd=to.clone().sub(from);const dist=dd.length();dd.normalize();
   if(worldHitT(from,dd,dist)>=dist-1.5&&!P.dead){flash(from.clone().addScaledVector(dd,2.5),.8);gunSound(.07,'mg',from);lastCombatT=time;const hitP=Math.random()<clamp(.45-dist*.004,.1,.45);const end=to.clone();if(hitP)hurtPlayer(5,from);else end.add(tmpV.set(RR(-2,2),RR(-1,1),RR(-2,2)));tracer(from,end);}}}}
@@ -285,29 +286,72 @@ function eat(hp){P.hp=Math.min(100,P.hp+hp);tone(300,.08,'sine',.05);setTimeout(
 function openBurger(p){speakAs('Verkäufer','Hallo! Einmal das Übliche?');openPanel(p.name,()=>[{label:'Burger',sub:'+30 Gesundheit',price:8,act(){eat(30);}},{label:'Salat',sub:'+20 Gesundheit',price:6,act(){eat(20);}},{label:'Großes Menü',sub:'+100 Gesundheit',price:20,act(){eat(100);}},{label:'Milchshake',sub:'+15 Gesundheit',price:4,act(){eat(15);}}]);}
 function fadeSkip(hours,text,col='#000'){const f=$('blackout');f.style.background=col;f.style.opacity=1;setTimeout(()=>{tod=(tod+hours/24)%1;lastEnvTod=-1;f.style.opacity=0;if(text)big(text[0],text[1],'#ffb35c');},1300);}
 function openSafehouse(p){openPanel('Deine Wohnung',()=>[
- {label:'Spiel speichern',sub:'Dein Fortschritt wird im Browser gespeichert',right:'💾',act(){saveGame(false);}},
- {label:'Schlafen (8 Stunden)',sub:'Gesundheit auffüllen und speichern',right:'🛏',act(){closePanel();P.hp=100;fadeSkip(8,['AUSGESCHLAFEN','Spiel gespeichert']);setTimeout(()=>saveGame(true),1500);}},
- {label:'Fortschritt',sub:`${completion()} % abgeschlossen · Pausemenü (P) zeigt Details`,dis:true,right:'📊'}]);}
+ {label:'Spiel speichern',sub:'Dein Fortschritt wird im Browser gespeichert',right:'',act(){saveGame(false);}},
+ {label:'Schlafen (8 Stunden)',sub:'Gesundheit auffüllen und speichern',right:'',act(){closePanel();P.hp=100;fadeSkip(8,['AUSGESCHLAFEN','Spiel gespeichert']);setTimeout(()=>saveGame(true),1500);}},
+ {label:'Fortschritt',sub:`${completion()} % abgeschlossen · Pausemenü (P) zeigt Details`,dis:true,right:''}]);}
 function openCinema(p){openPanel('Kino Palast',()=>FILMS.map(f=>({label:f[0],sub:f[1],price:15,act(){closePanel();PROG.movies++;P.hp=Math.min(100,P.hp+20);fadeSkip(2,['FILM GESEHEN','„'+f[0]+'“ war super!']);}})));}
 function openClub(p){openPanel('Club NEON',()=>[{label:'Die Nacht durchtanzen',sub:'Spaß bis zum Morgen',price:20,act(){closePanel();fadeSkip(5,['WAS FÜR EINE NACHT!','Du hast getanzt bis zum Morgen'],'#300040');}},{label:'Saft-Cocktail',sub:'+10 Gesundheit',price:5,act(){eat(10);}}]);}
 function rideMsg(){toast('Steig aus und geh hin');}
 function makeClerk(st){const sk=randomSkin();sk.topC=st.kind==='gas'?0xc0392b:0x2e86de;sk.extra=0;const c=buildChar(sk);scene.add(c.g);
  const n={c,kind:'clerk',hp:100,state:'clerk',vel:new THREE.Vector3(),timer:0,phase:0,atkT:0,stagger:0,store:st};peds.push(n);st.clerkN=n;resetClerk(n);
- const fx=st.clerk.ry===0?1:-1;addInteract({x:st.counter.x,z:st.counter.z+fx*1.6,r:1.7,label:'Snack kaufen ($5)',cond:()=>n.state==='clerk'&&!rob&&isUnlocked('store'),use(){if(P.money<5){toast('Nicht genug Geld!');return false;}P.money-=5;cashSound();eat(25);npcSay(n,'clerk');return false;}});return n;}
+ const fx=st.clerk.ry===0?1:-1;addInteract({x:st.counter.x,z:st.counter.z+fx*1.6,r:1.7,label:'Einkaufen',cond:()=>n.state==='clerk'&&!rob,use(){openMarket(st,n);return false;}});return n;}
 function resetClerk(n){const st=n.store,k=st.clerk;n.c.g.position.set(k.x,groundY(k.x,k.z),k.z);n.c.g.rotation.set(0,k.ry,0);n.state='clerk';n.hp=100;n.stagger=0;n.c.g.visible=true;n.dropped=false;n.downOnce=false;n.resetAt=0;n.c.armL.rotation.x=n.c.armR.rotation.x=0;}
+// ---------- Ladenüberfälle: Hände hoch -> Griff in die Kasse -> Geld auf den Tresen -> optional Tresor; stiller Alarm, wehrhafte Kassierer ----------
+const ROB_CFG={till:6,safe:9,alarmMin:14,alarmMax:24,leaveR:15};
+function clerkWho(n){return n&&n.c&&n.c.sk&&n.c.sk.koerper===1?'Kassiererin':'Kassierer';}
+function robLine(n,txt){try{$('dialog').innerHTML=`<b>${clerkWho(n)}:</b> ${txt}`;dialogT=3.5;}catch(e){}}
 function startRobbery(st){if(rob)return;if(st.cool>time){if(!st.coolMsg||time>st.coolMsg){st.coolMsg=time+5;toast('Die Kasse ist leer – komm später wieder');}return;}
- const n=st.clerkN;rob={st,t:0};ipStorePanic(st);n.state='handsup';n.hT=99;npcSay(n,'handsup',2);if(wanted===0&&Math.random()<.5)setTimeout(()=>{if(rob&&rob.st===st)toast('Der Kassierer hat den stillen Alarm gedrückt!');},2000);}
-function endRob(){if(!rob)return;const st=rob.st,n=st.clerkN;n.resetAt=Math.max(n.resetAt||0,time+300);st.cool=Math.max(st.cool||0,time+300);rob=null;}
+ const n=st.clerkN,gas=st.kind==='gas',repeat=PROG.robbed.includes(st.id);
+ const silent=wanted===0&&Math.random()<(repeat?.75:.45);
+ rob={st,t:0,anim:0,phase:'till',loot:0,got:0,tillCash:Math.round((gas?RR(420,950):RR(260,650))*(repeat?.8:1)),safeCash:Math.round((gas?RR(900,1800):RR(700,1400))*(repeat?.8:1)),
+  alarmIn:silent?RR(ROB_CFG.alarmMin,ROB_CFG.alarmMax):null,alarmed:false,idle:0,resist:Math.random()<.25,shootT:0,warned:false,safeTaken:false,cash:null,baseRy:st.clerk.ry};
+ ipStorePanic(st);n.state='handsup';n.hT=99;npcSay(n,'handsup',2);robLine(n,pick(['Okay, okay! Ganz ruhig!','Okay! Nicht schießen, ich mach ja schon!','Okay … okay. Ich geb dir das Geld!']));
+ if(silent)setTimeout(()=>{if(rob&&rob.st===st&&!rob.alarmed)toast('Der Kassierer hat den stillen Alarm gedrückt – die Polizei ist unterwegs!');},2500);}
+// Geldbündel auf den Tresen legen (wird wie normales Bargeld aufgesammelt)
+function robPlaceCash(r){const st=r.st,c=st.counter,fz=st.clerk.ry===0?1:-1;const g=new THREE.Group();
+ for(let k=0;k<3;k++){const m=new THREE.Mesh(cashGeo,cashMat);m.position.set((k-1)*.16,k*.045,0);m.rotation.y=RR(-.3,.3);g.add(m);}
+ g.position.set(c.x-.25,groundY(c.x,c.z)+1.07,c.z+fz*.15);scene.add(g);const e={m:g,amt:r.tillCash,t:90,type:'cash'};loot.push(e);r.cash=e;}
+function robPayout(){const r=rob;if(!r||r.loot<=0)return 0;const amt=Math.round(r.loot);r.loot=0;P.money+=amt;cashSound();cashPop('+$'+amt);return amt;}
+function endRob(reason){if(!rob)return;const r=rob,st=r.st,n=st.clerkN;
+ const total=r.got+robPayout();
+ if(total>0){big(r.safeTaken?'GROSSER ÜBERFALL!':'ÜBERFALL!',`${st.name}: +$${total.toLocaleString('de-DE')}`,'#7dff8a');
+  if(!PROG.robbed.includes(st.id)){PROG.robbed.push(st.id);toast(`Überfälle: ${PROG.robbed.length}/${stores.length}`);}
+  const heat=r.alarmed?(r.safeTaken?3:2):(r.safeTaken?2:1);alarmAt(new THREE.Vector3(st.cx,2,st.cz),10);setWanted(Math.max(wanted,heat));saveGame(true);}
+ else if(reason)toast(reason);
+ n.resetAt=Math.max(n.resetAt||0,time+300);st.cool=Math.max(st.cool||0,time+300);hideProg();rob=null;}
 function robTick(dt){
  for(const st0 of stores){const n0=st0.clerkN;if(n0&&n0.resetAt>0&&time>=n0.resetAt&&Math.hypot(P.pos.x-st0.cx,P.pos.z-st0.cz)>100&&(!rob||rob.st!==st0)){resetClerk(n0);toast('Der Laden hat wieder geöffnet');}}
- if(!rob)return;const st=rob.st,n=st.clerkN;
- if(n.state==='ko'||n.state==='fly'){toast('Der Kassierer ist K.O. – die Kasse bleibt zu!');setWanted(Math.max(wanted,1));st.cool=time+300;endRob();return;}
- const d=Math.hypot(P.pos.x-n.c.g.position.x,P.pos.z-n.c.g.position.z);
- if(d>15||P.inCar||P.dead){toast('Überfall abgebrochen');endRob();return;}
- rob.t+=dt*(aiming()?1:.3);setProg(rob.t<2.5?'Kassierer öffnet die Kasse …':rob.t<5?'Geld wird aus der Kasse genommen …':'Bargeld wird übergeben …',rob.t/6,'#ffd23a');
- if(rob.t>=6){const amt=Math.round(st.kind==='gas'?RR(400,950):RR(250,650));P.money+=amt;cashSound();cashPop('+$'+amt);big('ÜBERFALL!',`${st.name}: +$${amt}`,'#7dff8a');st.cool=time+300;
-  if(!PROG.robbed.includes(st.id)){PROG.robbed.push(st.id);toast(`Überfälle: ${PROG.robbed.length}/${stores.length}`);}
-  alarmAt(new THREE.Vector3(st.cx,2,st.cz),10);setWanted(Math.max(wanted,2));endRob();saveGame(true);}}
+ if(!rob)return;const r=rob,st=r.st,n=st.clerkN;
+ if(r.cash&&!r.got&&!loot.includes(r.cash)){r.got=r.cash.amt;r.cash=null;}
+ if(n.state==='ko'||n.state==='fly'){setWanted(Math.max(wanted,1));endRob(r.got+r.loot>0?null:'Der Kassierer ist K.O. – die Kasse bleibt zu!');return;}
+ const g=n.c.g.position,d=Math.hypot(P.pos.x-g.x,P.pos.z-g.z);
+ if(P.dead){r.loot=0;endRob('Überfall gescheitert – die Beute ist weg.');return;}
+ if(d>ROB_CFG.leaveR||P.inCar){endRob(r.got+r.loot>0?null:'Überfall abgebrochen');return;}
+ if(r.alarmIn!=null&&!r.alarmed){r.alarmIn-=dt;if(r.alarmIn<=0){r.alarmed=true;setWanted(Math.max(wanted,2));toast('Die Polizei ist da!');}}
+ const aim=aiming();
+ if(!aim&&r.phase!=='done'&&r.phase!=='give'){r.idle+=dt;if(r.resist&&r.idle>1.6){if(!r.warned){r.warned=true;npcSay(n,'hurt',2);robLine(n,'Du kriegst gar nichts!');toast('Der Kassierer greift unter den Tresen – ziel auf ihn!');r.shootT=.9;}
+   r.shootT-=dt;if(r.shootT<=0){r.shootT=1.1;flash(tmpV.set(g.x,g.y+1.3,g.z),.35);tone(180,.12,'sawtooth',.06);if(Math.random()<.7)hurtPlayer(14,n);}}}
+ else if(aim){r.idle=0;if(r.warned){r.warned=false;robLine(n,'Okay, okay! Schon gut!');}}
+ const speed=aim?1:.35;r.anim+=dt;
+ if(r.phase==='till'){r.t+=dt*speed;
+  if(r.t>=ROB_CFG.till){r.phase='give';r.giveT=0;}}
+ else if(r.phase==='give'){r.giveT+=dt;if(r.giveT>.7&&!r.cash&&!r.got){robPlaceCash(r);cashSound();robLine(n,pick(['Hier! Nimm es und geh!','Das ist alles, ich schwöre!','Bitte, nimm es einfach!']));}
+  if(r.giveT>1.4){r.phase='safe';r.t=0;toast('Nimm das Geld vom Tresen! Bleib für den Tresor – oder hau ab.');}}
+ else if(r.phase==='safe'){r.t+=dt*speed;r.loot=r.safeCash*Math.min(1,r.t/ROB_CFG.safe);r.safeTaken=r.t>ROB_CFG.safe*.25;
+  if(r.t>=ROB_CFG.safe){r.phase='done';tone(880,.15,'sine',.06);toast('Tresor ausgeräumt – jetzt nichts wie weg!');}}
+ const lootTxt='Beute $'+Math.round(r.got+r.loot).toLocaleString('de-DE')+(r.cash?' (+$'+r.tillCash.toLocaleString('de-DE')+' auf dem Tresen)':'');
+ const cop=r.alarmed?' · POLIZEI IST DA':r.alarmIn!=null&&r.alarmIn<10?` · Polizei in ${Math.ceil(r.alarmIn)} s`:'';
+ const lbl=r.phase==='done'?'Verschwinde aus dem Laden!':!aim&&r.phase!=='give'?'Halte die Waffe auf den Kassierer!':r.phase==='till'?(r.t<1.2?'Hände hoch!':'Geld wird aus der Kasse genommen'):r.phase==='give'?'Geld kommt auf den Tresen':(r.cash?'Nimm das Geld vom Tresen':'Tresor wird geöffnet (oder abhauen)');
+ const f=r.phase==='till'?r.t/ROB_CFG.till:r.phase==='safe'?r.t/ROB_CFG.safe:1;
+ setProg(`${lbl} – ${lootTxt}${cop}`,f,r.alarmed?'#ff5050':r.phase==='safe'?'#ff9a3c':'#ffd23a');}
+// Körperhaltung des Kassierers während des Überfalls (nach allen anderen Animationen angewendet)
+function robPose(){const r=rob;if(!r)return;const n=r.st.clerkN;if(!n||!n.c||n.state==='ko'||n.state==='fly')return;const c=n.c,g=c.g;
+ const toP=Math.atan2(P.pos.x-g.position.x,P.pos.z-g.position.z),toReg=Math.atan2(r.st.counter.x+(r.st.w||6)*.1-g.position.x,r.st.counter.z-g.position.z);
+ let ry=toP,aL=-2.9,aR=-2.9;
+ if(r.phase==='till'&&r.t>=1.2){ry=toReg;const w=Math.sin(r.anim*7);aR=-1.1+w*.35;aL=-.4;}
+ else if(r.phase==='give'){ry=toP;aL=aR=r.giveT<.9?-1.35:-2.9;}
+ g.rotation.y=lerpAng(g.rotation.y,ry,.25);if(c.armL)c.armL.rotation.x=aL;if(c.armR)c.armR.rotation.x=aR;}
+{const _cpt=charsPostTick;charsPostTick=function(){const res=_cpt.apply(this,arguments);try{robPose();}catch(e){}return res;};}
 function aimTick(dt){aimCheckT-=dt;if(aimCheckT>0)return;aimCheckT=.15;if(!aiming())return;
  const o=camera.position,d=new THREE.Vector3();camera.getWorldDirection(d);let best=null,bt=35;
  for(const n of peds){if(n.kind==='dummy'||n.state==='ko'||n.state==='fly'||n.state==='ride'||!n.c.g.visible)continue;const t=charHit(o,d,n.c.g.position,bt,.75,1.9);if(t>=0&&t<bt){bt=t;best=n;}}
@@ -368,3 +412,19 @@ function curbPoint(minD,maxD){for(let t=0;t<60;t++){const b=pick(blockInfo);cons
   const d=Math.hypot(x-P.pos.x,z-P.pos.z);if(d>=minD&&d<=maxD&&z<COAST-2)return {x,z};}return null;}
 function spawnWaiter(p,patient){const n=makeCiv(false,false);n.c.g.position.set(p.x,groundY(p.x,p.z),p.z);n.timer=1e9;
  if(patient){n.patient=true;n.state='ko';n.c.g.rotation.set(-Math.PI/2,Math.random()*6,0);n.c.g.position.y+=.15;}else{n.fare=true;n.state='wait';}peds.push(n);return n;}
+
+// ---------- Supermarkt: echtes Einkaufsmenü an der Kasse ----------
+function openMarket(st,n){npcSay(n,'greet');
+ const buy=(t)=>{cashSound();toast(t);};
+ const news=()=>{const ep=PROG.ep||{};const h=[];if(ep.buch==='aussage')h.push('PORT SOLARA KURIER: Zeugenaussage bringt Kommissar Brandt zu Fall!');else if(ep.buch==='anonym')h.push('PORT SOLARA KURIER: Anonyme Quelle liefert Beweise gegen Brandt.');
+  if(PROG.story)h.push('PORT SOLARA KURIER: Geier-Bande zerschlagen – Wüste atmet auf.');h.push(pick(['PORT SOLARA KURIER: Hitzewelle! Strand so voll wie nie.','PORT SOLARA KURIER: Neues Riesenrad am Stadtstrand eröffnet.','PORT SOLARA KURIER: Mieten steigen weiter.','PORT SOLARA KURIER: Polizei sucht Raser in der Innenstadt.']));return pick(h);};
+ openPanel(st.name||'Supermarkt',()=>[
+  {label:'Wasser',sub:'+10 Gesundheit',price:2,act(){eat(10);}},
+  {label:'Sandwich',sub:'+25 Gesundheit',price:5,act(){eat(25);}},
+  {label:'Pizza-Stück',sub:'+35 Gesundheit',price:8,act(){eat(35);}},
+  {label:'Energydrink',sub:'+15 Gesundheit',price:4,act(){eat(15);}},
+  {label:'Erste-Hilfe-Set',sub:'+60 Gesundheit',price:35,act(){eat(60);}},
+  {label:'Rubbellos',sub:'Mit etwas Glück gewinnst du bis zu $1.000',price:10,act(){const r=Math.random();const w=r<.02?1000:r<.1?100:r<.3?20:0;if(w){P.money+=w;cashPop('+$'+w);buy('Gewonnen: $'+w+'!');}else toast('Leider nichts gewonnen.');}},
+  {label:'Zeitung',sub:'Was gibt es Neues in Port Solara?',price:1,act(){toast(news());}},
+  {label:'Sonnenbrille',sub:'Für den Miami-Look',price:25,act(){try{skin.extra=1;rebuildPlayer();buy('Sonnenbrille aufgesetzt.');}catch(e){buy('Sonnenbrille gekauft.');}}},
+ ],()=>`Geld: $${(P.money||0).toLocaleString('de-DE')} · Gesundheit: ${Math.round(P.hp)}`);}

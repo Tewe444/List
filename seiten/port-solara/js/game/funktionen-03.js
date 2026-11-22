@@ -285,7 +285,7 @@ function storeShell(cx,cz,w,d,h,front,wallMat,name,bg,fg,o={}){
  if(name)signMesh(name,Math.min(w-1,12),1.4,cx,h-.95,fz+front*.23,front>0?0:Math.PI,bg,fg,1.1,52);
  return {roof,cx,cz,w,d,h,front,door:{x:cx,z:fz+front*1.4},clerk:{x:kx,z:bz+front*1.1,ry:front>0?0:Math.PI},counter:{x:kx,z:kz},cool:0,inside:(x,z)=>Math.abs(x-cx)<w/2-.2&&Math.abs(z-cz)<d/2-.2};
 }
-function genericKind(cx,cz){if(Math.hypot(cx,cz+30)<215)return rand()<.55?'glass':'office';return pickR(['brick','brick','plaster','office']);}
+function genericKind(cx,cz){if(Math.hypot(cx,cz+30)<215)return rand()<.55?'glass':'office';return pickR(['plaster','plaster','plaster','brick','office']);}
 function fillBack(info,n=2){const {x0,x1,z0,cx,cz}=info;const k=genericKind(cx,cz);const dd=Math.hypot(cx,cz+30),down=Math.max(0,1-dd/215);
  const lots=[[x0+14,z0+14],[x1-14,z0+14]];for(let q=0;q<Math.min(n,2);q++){const [lx,lz]=lots[q];building(lx,lz,R(15,20),R(15,20),Math.round(down>0?R(30,60)+down*down*R(30,100):R(9,26)),k);}}
 function baseFloor(info,mat=sidewalkMat,rep=[4,4]){addStatic(boxG(BLK-7,.05,BLK-7,null,rep),mat,info.cx,.3,info.cz,0,1,1,1,{noShadow:true});}

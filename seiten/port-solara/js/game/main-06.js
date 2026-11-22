@@ -80,7 +80,7 @@ let introBoat=null;
 // ---------- Wetter ----------
 const WX={type:'klar',rain:0,cloud:.12,fog:0,wet:0,next:RR(200,380),flashT:0,boltT:6,target:{rain:0,cloud:.12,fog:0}};
 const WX_TYPES={klar:{rain:0,cloud:.12,fog:0},wolkig:{rain:0,cloud:.65,fog:.08},regen:{rain:.75,cloud:.9,fog:.3},gewitter:{rain:1,cloud:1,fog:.35},nebel:{rain:0,cloud:.45,fog:1}};
-const WX_ICON={klar:'☀️',wolkig:'☁️',regen:'🌧️',gewitter:'⛈️',nebel:'🌫️'};
+const WX_ICON={klar:'Sonnig',wolkig:'Wolkig',regen:'Regen',gewitter:'Gewitter',nebel:'Nebel'};
 // Regen: GPU-animierte Regenstreifen (Billboards), wandern mit der Kamera, auf allen Qualitätsstufen
 const RAIN_N=[2600,4200,6000][SET.quality]||4200;
 const rainGeo=new THREE.BufferGeometry();
@@ -212,10 +212,10 @@ const VIEWS=[['Gipfel Mount Solara',()=>({x:(SITES.peak.x0+SITES.peak.x1)/2+8,z:
 
 // ================= BUSINESS-MODUS (nach der Story): Nachtclub, Ware-Schmuggel, Waffenschmuggel, Autohandel =================
 const BIZ_ROLES={
- club:{name:'Nachtclubbesitzer',icon:'🎧',desc:'Kauf einen Club, bau ihn aus (Sound, Licht, VIP, Star-DJ) und mach ihn mit Promo-Touren zum angesagtesten Laden der Insel.'},
- ware:{name:'Schmuggler',icon:'📦',desc:'Lagerhallen und Verstecke kaufen, Ware produzieren lassen und riskante Lieferungen über die ganze Insel fahren.'},
- waffen:{name:'Waffenschmuggler',icon:'🛡️',desc:'Bunker und Hangar in der Wüste. Produziere Ausrüstung, beliefere Käufer – und pass auf Überfälle auf.'},
- autos:{name:'Autohändler',icon:'🚗',desc:'Autohaus kaufen, seltene Wagen beschaffen und mit Gewinn verkaufen. Je schöner der Ausstellungsraum, desto schneller der Umsatz.'}};
+ club:{name:'Nachtclubbesitzer',icon:'',desc:'Kauf einen Club, bau ihn aus (Sound, Licht, VIP, Star-DJ) und mach ihn mit Promo-Touren zum angesagtesten Laden der Insel.'},
+ ware:{name:'Schmuggler',icon:'',desc:'Lagerhallen und Verstecke kaufen, Ware produzieren lassen und riskante Lieferungen über die ganze Insel fahren.'},
+ waffen:{name:'Waffenschmuggler',icon:'',desc:'Bunker und Hangar in der Wüste. Produziere Ausrüstung, beliefere Käufer – und pass auf Überfälle auf.'},
+ autos:{name:'Autohändler',icon:'',desc:'Autohaus kaufen, seltene Wagen beschaffen und mit Gewinn verkaufen. Je schöner der Ausstellungsraum, desto schneller der Umsatz.'}};
 const BIZ_PROPS=[
  {id:'neon',role:'club',name:'Club NEON',price:1800000,pos:()=>{const d=SPECIAL['8,6'].door;return {x:d.x-7,z:d.z};}},
  {id:'mirage',role:'club',name:'Club Mirage (Vista Mar)',price:1250000,pos:()=>({x:-1032,z:410}),club:'Club Mirage'},
@@ -245,7 +245,7 @@ addEventListener('keydown',e=>{if(e.code==='KeyB'&&BIZ.active&&mode==='play'&&!e
 let bizSaveT=0;
 // ---------- Aufträge ----------
 const BIZ_BUYERS=[{n:'Kunde am Hafen',x:nodeX(2)-4,z:nodeX(N)-3},{n:'Käufer in Vista Mar',x:-970,z:420},{n:'Kontakt an der Kaktus-Tankstelle',x:300,z:-2075},{n:'Abnehmer beim Windpark',x:1050,z:-2600},{n:'Käufer am Salzsee',x:-300,z:-2470},{n:'Treffpunkt Sternwarte',x:-420,z:-1150},{n:'Abnehmer am Camp Ostklippe',x:1090,z:-960},{n:'Kontakt im Rostviertel',x:-600,z:-640}];
-{const t=$('title');if(t&&t.insertBefore){const b=document.createElement('button');b.className='bigbtn alt2';b.id='bizbtn';b.textContent='💼 BUSINESS-MODUS';b.onclick=()=>openBizTitle();t.insertBefore(b,$('status'));}}
+{const t=$('title');if(t&&t.insertBefore){const b=document.createElement('button');b.className='bigbtn alt2';b.id='bizbtn';b.textContent='BUSINESS-MODUS';b.onclick=()=>openBizTitle();t.insertBefore(b,$('status'));}}
 
 // ================= ONLINE-MODUS (PeerJS): Freies Spiel, Duell, Rennen, Koop-Aufträge =================
 const NET={on:false,host:false,peer:null,conns:[],code:'',players:new Map(),mode:null,score:{},sendT:0,envT:0,coop:null,cpup:new Map(),raceFin:null,chatOpen:false};
@@ -254,10 +254,10 @@ const netName=()=>{const d=loadGame();return (d&&d.name)||localStorage.getItem('
 const DUEL_SPAWNS=()=>[nd(5,5),nd(9,5),nd(5,9),nd(9,9),nd(7,7),nd(6,4),nd(10,8),nd(4,10)];
 const COOP_SPOTS=[{n:'Rostviertel',x:-600,z:-650},{n:'Industriegebiet',x:nodeX(1)+35,z:nodeX(6)},{n:'Dustwater',x:560,z:-2300},{n:'Ölfeld Calvera',x:30,z:-2975},{n:'Schrottplatz Müller',x:-640,z:100}];
 addEventListener('keydown',e=>{if(!NET.on||mode!=='play')return;if(e.code==='Enter'&&!NET.chatOpen){e.preventDefault();netChatOpen();}else if(e.code==='KeyO'&&!NET.chatOpen&&!e.repeat)openNetMenu();});
-{const t=$('title');if(t&&t.insertBefore){const b=document.createElement('button');b.className='bigbtn alt2';b.id='netbtn';b.textContent='🌐 ONLINE';b.onclick=()=>openNetTitle();t.insertBefore(b,$('status'));}}
+{const t=$('title');if(t&&t.insertBefore){const b=document.createElement('button');b.className='bigbtn alt2';b.id='netbtn';b.textContent='ONLINE';b.onclick=()=>openNetTitle();t.insertBefore(b,$('status'));}}
 
 // ================= PAUSEMENÜ & EINSTELLUNGEN =================
-let pauseOpen=false,pauseTab='map';
+let pauseOpen=false,pauseTab='stats';
 document.querySelectorAll('#ptabs button').forEach(b=>b.onclick=()=>{uiClick();showPauseTab(b.dataset.t);});
 $('presume').onclick=()=>closePause();
 $('psave').onclick=()=>{saveGame(false);uiClick();};
@@ -267,7 +267,7 @@ for(const ev of ['pointerlockchange','webkitpointerlockchange','mozpointerlockch
 
 // ================= STEUERUNG: Tastenbelegung · Controller · Touch =================
 const IN_LS={keys:'portsolara_keys',pad:'portsolara_pad',touch:'portsolara_touch'};
-const DEV_NAME={kb:'⌨️ Tastatur & Maus',pad:'🎮 Controller',touch:'📱 Touch'};
+const DEV_NAME={kb:'Tastatur & Maus',pad:'Controller',touch:'Touch'};
 
 // ---------- Aktionen & Tastatur-Belegung ----------
 const ACTS={

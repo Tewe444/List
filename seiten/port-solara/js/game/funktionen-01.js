@@ -34,13 +34,13 @@ function addStatic(geo,mat,x,y,z,ry=0,sx=1,sy=1,sz=1,o={}){
 function finalizeStatic(){
  for(const b of buckets.values()){
   const g=mergeGeometries(b.list,false);if(!g)continue;g.computeBoundingSphere();g.computeBoundingBox();
-  const m=new THREE.Mesh(g,b.mat);m.castShadow=b.shadow;m.receiveShadow=true;scene.add(m);
+  const m=new THREE.Mesh(g,b.mat);m.castShadow=b.shadow;m.receiveShadow=true;m.matrixAutoUpdate=false;m.updateMatrix();m.matrixWorld.copy(m.matrix);m.matrixWorldAutoUpdate=false;scene.add(m);
   let ch=staticChunkMap.get(b.chunkKey);if(!ch){const ox=b.cx*STATIC_CHUNK_SIZE-HALF-600,oz=b.cz*STATIC_CHUNK_SIZE-HALF-600;ch={key:b.chunkKey,cx:b.cx,cz:b.cz,x0:ox,x1:ox+STATIC_CHUNK_SIZE,z0:oz,z1:oz+STATIC_CHUNK_SIZE,meshes:[],minX:Infinity,minY:Infinity,minZ:Infinity,maxX:-Infinity,maxY:-Infinity,maxZ:-Infinity,triangles:0,proxy:null};staticChunkMap.set(b.chunkKey,ch);}
   ch.meshes.push(m);ch.triangles+=b.triangles;ch.minX=Math.min(ch.minX,b.minX);ch.minY=Math.min(ch.minY,b.minY);ch.minZ=Math.min(ch.minZ,b.minZ);ch.maxX=Math.max(ch.maxX,b.maxX);ch.maxY=Math.max(ch.maxY,b.maxY);ch.maxZ=Math.max(ch.maxZ,b.maxZ);
  }
  for(const ch of staticChunkMap.values()){
   const w=clamp(ch.maxX-ch.minX,4,STATIC_CHUNK_SIZE*1.35),d=clamp(ch.maxZ-ch.minZ,4,STATIC_CHUNK_SIZE*1.35),h=clamp(ch.maxY-ch.minY,2,125);
-  const pg=new THREE.BoxGeometry(w,h,d);const proxy=new THREE.Mesh(pg,staticBlockMat);proxy.position.set((ch.minX+ch.maxX)/2,(ch.minY+ch.maxY)/2,(ch.minZ+ch.maxZ)/2);proxy.castShadow=false;proxy.receiveShadow=false;proxy.visible=false;scene.add(proxy);ch.proxy=proxy;staticChunks.push(ch);
+  const pg=new THREE.BoxGeometry(w,h,d);const proxy=new THREE.Mesh(pg,staticBlockMat);proxy.position.set((ch.minX+ch.maxX)/2,(ch.minY+ch.maxY)/2,(ch.minZ+ch.maxZ)/2);proxy.castShadow=false;proxy.receiveShadow=false;proxy.visible=false;proxy.matrixAutoUpdate=false;proxy.updateMatrix();proxy.matrixWorld.copy(proxy.matrix);proxy.matrixWorldAutoUpdate=false;scene.add(proxy);ch.proxy=proxy;staticChunks.push(ch);
  }
  buckets.clear();staticChunkMap.clear();
 }
@@ -165,6 +165,7 @@ function building(x,z,w,d,h,kind){
  const mat=pickR(MATS[kind]),f=FAC[kind];let base=.3;
  if(kind!=='glass'&&kind!=='warehouse'&&h>9){addStatic(boxG(w+.3,4.2,d+.3,[FAC.shop.tw,FAC.shop.th]),MATS.shop[0],x,base,z);base+=4.2;}
  addStatic(boxG(w,h-(base-.3),d,[f.tw,f.th]),mat,x,base,z);
+ if(kind!=='glass'&&kind!=='warehouse')facadeDetail(x,z,w,d,h,base,kind);
  let top=.3+h;addStatic(boxG(w+.5,.7,d+.5),roofMat,x,top,z);top+=.7;bldgs.push({x:x+SX,z:z+SZ,w,d,h,top:top+SY});
  if(kind==='glass'&&h>55&&rand()<.65){const w2=w*R(.55,.75),d2=d*R(.55,.75),h2=h*R(.12,.25);addStatic(boxG(w2,h2,d2,[f.tw,f.th]),mat,x,top,z);addStatic(boxG(w2+.4,.6,d2+.4),roofMat,x,top+h2,z);top+=h2+.6;}
  if(h>70){addStatic(GEO.cyl,cm(0x8a8a8a,.4,.6),x,top+6,z,0,.18,12,.18);const al=mesh(new THREE.BoxGeometry(.8,.8,.8),antMat,x,top+12.3,z,false);scene.add(al);antennaLights.push(al);}
@@ -172,6 +173,16 @@ function building(x,z,w,d,h,kind){
  if(kind==='brick'&&rand()<.4){addStatic(GEO.cyl,cm(0x6b4a30,.9),x+w/4,top+2.4,z-d/4,0,1.3,3,1.3);addStatic(GEO.cone,cm(0x4a3220,.9),x+w/4,top+4.4,z-d/4,0,1.4,1,1.4);}
  addSolid(x-w/2-.2,x+w/2+.2,z-d/2-.2,z+d/2+.2,top+1);
 }
+// Art-déco-Fassaden (Miami-Stil): Eckpilaster, umlaufende Gesimse, gestufte Dachaufbauten, Neonband
+let FAC_TRIM=null,FAC_NEON=null;
+function facadeDetail(x,z,w,d,h,base,kind){
+ if(!FAC_TRIM){FAC_TRIM=[cm(0xfbf8f0,.75),cm(0xe9e2d2,.8)];FAC_NEON=[0xff3fa4,0x2ff3ff,0xb44dff,0x3dffb0,0xffb03b].map(c=>new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:1.8,roughness:.4}));}
+ const T=FAC_TRIM[kind==='brick'?1:0],top=.3+h,span=top-base;if(span<5)return;
+ for(const sx of [-1,1])for(const sz of [-1,1])addStatic(boxG(.7,span,.7),T,x+sx*w/2,base,z+sz*d/2);
+ const n=Math.min(6,Math.floor(span/6.5));for(let k=1;k<=n;k++)addStatic(boxG(w+.5,.24,d+.5),T,x,base+k*span/(n+1),z,0,1,1,1,{noShadow:true});
+ if(kind==='plaster'||(kind==='office'&&rand()<.4)){
+  addStatic(boxG(w+.6,.14,d+.6),pickR(FAC_NEON),x,top-.55,z,0,1,1,1,{noShadow:true});
+  if(h<60&&rand()<.8){const cw=Math.min(w*.45,9),cd=Math.min(d*.3,4);addStatic(boxG(cw,2.2,cd),T,x,top+.7,z);addStatic(boxG(cw*.6,1.4,cd*.7),T,x,top+2.9,z);addStatic(boxG(.5,2.2,.5),T,x,top+4.3,z);}}}
 function house(x,z,w,d,h,ry){
  addStatic(boxG(w,h,d,[8,6]),pickR(MATS.house),x,.3,z,ry);
  addStatic(roofGeo,pickR(roofMats),x,.3+h,z,ry,w+1.2,w*.9,d+1.2);

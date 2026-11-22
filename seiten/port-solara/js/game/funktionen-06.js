@@ -93,7 +93,7 @@ function cineCombatButtonUp(b){const code=b.dataset.cineCode;if(code)K[code]=fal
 function clearKeys(){for(const k in K)K[k]=false;for(const k in HOLD)HOLD[k].clear();}
 function lockMouse(){if(SET.input!=='kb'||plEl())return;const el=renderer.domElement,f=el.requestPointerLock||el.webkitRequestPointerLock||el.mozRequestPointerLock;
  if(!f){plFail(true);return;}PL.tryT=performance.now();try{const r=f.call(el);if(r&&r.catch)r.catch(()=>plFail());}catch(e){plFail();}}
-function plFail(hard){PL.tryT=0;PL.fail++;if((hard||PL.fail>=2)&&!PL.off){PL.off=true;toast('🖱️ Dieser Browser lässt die Maus nicht einfangen – die Kamera dreht am Bildschirmrand automatisch weiter.');}}
+function plFail(hard){PL.tryT=0;PL.fail++;if((hard||PL.fail>=2)&&!PL.off){PL.off=true;toast('Dieser Browser lässt die Maus nicht einfangen – die Kamera dreht am Bildschirmrand automatisch weiter.');}}
 function mouseTick(dt){// Zeigerstatus + Rückfall-Kamera; jedes Bild aufgerufen
  if(PL.tryT&&!plEl()&&performance.now()-PL.tryT>1600)plFail();
  const play=mode==='play'&&SET.input==='kb'&&!P.dead;
@@ -104,7 +104,7 @@ function mouseTick(dt){// Zeigerstatus + Rückfall-Kamera; jedes Bild aufgerufen
   if(PL.my<H*e)camPitch=clamp(camPitch-sp*.6,-.5,1.25);else if(PL.my>H*(1-e))camPitch=clamp(camPitch+sp*.6,-.5,1.25);}}
 function initAudio(){if(AC)return;try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){AC=null;return;}
  const comp=AC.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=3;comp.connect(AC.destination);
- musicOut=AC.createGain();musicOut.gain.value=SET.music;musicOut.connect(comp);
+ musicOut=AC.createGain();musicOut.gain.value=musicVol();musicOut.connect(comp);
  sfxOut=AC.createGain();sfxOut.gain.value=SET.sfx;sfxOut.connect(comp);
  ambOut=AC.createGain();ambOut.gain.value=SET.sfx;ambOut.connect(comp);
  noiseBuf=makeNoiseBuffer(2);
@@ -128,7 +128,8 @@ function rainDrop(car){if(!AC||!noiseBuf)return;const t=AC.currentTime,n=AC.crea
  g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+.012+Math.random()*.02);const pn=AC.createStereoPanner?AC.createStereoPanner():null;n.connect(f);f.connect(g);if(pn){pn.pan.value=Math.random()*1.6-.8;g.connect(pn);pn.connect(ambOut);}else g.connect(ambOut);n.start(t,Math.random()*1.5);n.stop(t+.05);}
 function makeNoiseBuffer(sec){const b=AC.createBuffer(1,Math.floor(AC.sampleRate*sec),AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return b;}
 function loopNoise(type,freq,q,out){const s=AC.createBufferSource();s.buffer=noiseBuf;s.loop=true;const f=AC.createBiquadFilter();f.type=type;f.frequency.value=freq;f.Q.value=q;const g=AC.createGain();g.gain.value=0;s.connect(f);f.connect(g);g.connect(out);s.start();return g;}
-function applyVolumes(){if(!AC)return;musicOut.gain.setTargetAtTime(SET.music*(mode==='menu'?.45:1),AC.currentTime,.1);sfxOut.gain.setTargetAtTime(SET.sfx,AC.currentTime,.1);ambOut.gain.setTargetAtTime(SET.sfx,AC.currentTime,.1);if(typeof radioIsAudible==='function'){const audible=radioIsAudible();setRadioWidgetVolume(audible?(radioVoiceBusy?SET.music*24:SET.music*100):0);if(radioVoiceAudio)radioVoiceAudio.volume=audible?clamp(SET.music*.85,0,1):0;if(!audible)setRadioStatic(false);}}
+function musicVol(){const v=Math.max(0,Math.min(1,+SET.music||0));return v*v;}
+function applyVolumes(){if(!AC)return;musicOut.gain.setTargetAtTime(musicVol()*(mode==='menu'?.45:1),AC.currentTime,.1);sfxOut.gain.setTargetAtTime(SET.sfx,AC.currentTime,.1);ambOut.gain.setTargetAtTime(SET.sfx,AC.currentTime,.1);if(typeof radioIsAudible==='function'){const audible=radioIsAudible();setRadioWidgetVolume(audible?(radioVoiceBusy?musicVol()*24:musicVol()*100):0);if(radioVoiceAudio)radioVoiceAudio.volume=audible?clamp(musicVol()*.85,0,1):0;if(!audible)setRadioStatic(false);}}
 // räumlicher Ausgang (Lautstärke & Stereo je nach Position)
 function outAt(pos,maxD=140){if(!AC)return null;let vol=1,pan=0;if(pos){const d=pos.distanceTo(camera.position);if(d>maxD)return null;vol=Math.pow(1-d/maxD,1.5);tmpA.copy(pos).sub(camera.position).normalize();tmpB.set(1,0,0).applyQuaternion(camera.quaternion);pan=clamp(tmpA.dot(tmpB),-1,1);}
  const g=AC.createGain();g.gain.value=vol;if(AC.createStereoPanner){const p=AC.createStereoPanner();p.pan.value=pan;g.connect(p);p.connect(sfxOut);}else g.connect(sfxOut);return g;}
@@ -160,17 +161,17 @@ function speak(text,o={}){if(!VOICE.ok||!SET.voice||mode==='menu')return;const n
 function speakAs(who,text){const name=who.replace(/\s*\(.*\)/,'');const v=CHAR_VOICE[name]||{pitch:1,rate:1.05,who:0};speak(text,{...v,prio:2});}
 function radioIsAudible(){return !!(P.inCar&&mode==='play');}
 function setRadioWidgetVolume(value){if(!radioWidget)return;try{radioWidget.setVolume(clamp(value,0,100));}catch(e){}}
-function restoreRadioWidgetVolume(){setRadioWidgetVolume(radioIsAudible()?(radioVoiceBusy?SET.music*24:SET.music*100):0);}
+function restoreRadioWidgetVolume(){setRadioWidgetVolume(radioIsAudible()?(radioVoiceBusy?musicVol()*24:musicVol()*100):0);}
 function stopRadioVoice(){if(radioVoiceAudio){try{radioVoiceAudio.pause();radioVoiceAudio.currentTime=0;}catch(e){}radioVoiceAudio=null;}radioVoiceDone=null;radioVoiceBusy=false;restoreRadioWidgetVolume();}
 // Eine Ansage wird auch außerhalb des Autos zeitlich abgespielt, dort aber stumm. So bleibt die Song-Reihenfolge synchron.
 function playRadioVoice(afterDone=null){const data=stationData(MUS.station);if(!data?.url||!PLAYLIST_STORE.consentSC||radioVoiceBusy||!RADIO_VOICE_CLIPS.length){if(afterDone)afterDone();return false;}
  let i=Math.floor(Math.random()*RADIO_VOICE_CLIPS.length);if(RADIO_VOICE_CLIPS.length>1&&i===radioVoiceLast)i=(i+1+Math.floor(Math.random()*(RADIO_VOICE_CLIPS.length-1)))%RADIO_VOICE_CLIPS.length;radioVoiceLast=i;
- try{if(radioVoiceAudio){try{radioVoiceAudio.pause();}catch(e){}}radioVoiceBusy=true;radioVoiceDone=afterDone;setRadioWidgetVolume(radioIsAudible()?SET.music*24:0);radioVoiceAudio=new Audio(RADIO_VOICE_CLIPS[i]);radioVoiceAudio.preload='auto';radioVoiceAudio.volume=radioIsAudible()?clamp(SET.music*.85,0,1):0;let completed=false;const done=()=>{if(completed)return;completed=true;radioVoiceBusy=false;radioVoiceAudio=null;const next=radioVoiceDone;radioVoiceDone=null;restoreRadioWidgetVolume();if(next)next();};radioVoiceAudio.onended=done;radioVoiceAudio.onerror=done;const promise=radioVoiceAudio.play();if(promise&&promise.catch)promise.catch(done);return true;
+ try{if(radioVoiceAudio){try{radioVoiceAudio.pause();}catch(e){}}radioVoiceBusy=true;radioVoiceDone=afterDone;setRadioWidgetVolume(radioIsAudible()?musicVol()*24:0);radioVoiceAudio=new Audio(RADIO_VOICE_CLIPS[i]);radioVoiceAudio.preload='auto';radioVoiceAudio.volume=radioIsAudible()?clamp(musicVol()*.85,0,1):0;let completed=false;const done=()=>{if(completed)return;completed=true;radioVoiceBusy=false;radioVoiceAudio=null;const next=radioVoiceDone;radioVoiceDone=null;restoreRadioWidgetVolume();if(next)next();};radioVoiceAudio.onended=done;radioVoiceAudio.onerror=done;const promise=radioVoiceAudio.play();if(promise&&promise.catch)promise.catch(done);return true;
  }catch(e){radioVoiceBusy=false;radioVoiceAudio=null;radioVoiceDone=null;restoreRadioWidgetVolume();if(afterDone)afterDone();return false;}}
-function radioVoiceTick(dt){const audible=radioIsAudible();if(radioVoiceAudio)radioVoiceAudio.volume=audible?clamp(SET.music*.85,0,1):0;if(!audible){setRadioWidgetVolume(0);setRadioStatic(false);}else if(radioWidgetStarted&&!radioVoiceBusy)setRadioWidgetVolume(SET.music*100);}
+function radioVoiceTick(dt){const audible=radioIsAudible();if(radioVoiceAudio)radioVoiceAudio.volume=audible?clamp(musicVol()*.85,0,1):0;if(!audible){setRadioWidgetVolume(0);setRadioStatic(false);}else if(radioWidgetStarted&&!radioVoiceBusy)setRadioWidgetVolume(musicVol()*100);}
 function startMusicEngine(){MUS.next=AC.currentTime+.1;const ws=AC.createWaveShaper();const cv=new Float32Array(256);for(let i=0;i<256;i++){const x=i/128-1;cv[i]=Math.tanh(x*5);}ws.curve=cv;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=2400;ws.connect(f);f.connect(musicOut);MUS.guitarBus=ws;setInterval(musicTick,30);}
 function desiredStyle(){if(mode==='title'||mode==='creator')return 'menu';if(mode==='cine')return 'synth';
- if(P.inCar||P.inAir)return null;if(wanted>=2||time-lastCombatT<8)return 'chase';return SET.footMusic?'ambient':null;}
+ if(P.inCar||P.inAir)return null;return null;} // zu Fuß ist die Musik stumm – Musik läuft nur im Auto (Radio)
 function newMotif(){const pos=[0,2,3,6,8,10,12,14],m=new Array(16).fill(null),len=new Array(16).fill(1);let d=Math.floor(Math.random()*5);for(const p of pos){if(Math.random()<.72){d=clamp(d+Math.floor(Math.random()*5)-2,0,7);m[p]=d;len[p]=1+Math.floor(Math.random()*2);}}return {m,len};}
 function musicTick(){if(!AC||AC.state!=='running')return;const want=mode==='menu'?MUS.name:desiredStyle();
  if(want!==MUS.name){MUS.name=want;MUS.st=want?STY[want]:null;MUS.step=0;MUS.motif=newMotif();MUS.next=Math.max(MUS.next,AC.currentTime+.05);}
@@ -205,14 +206,14 @@ function normalizeSoundCloud(raw){let u;try{u=new URL(raw.trim());}catch(e){retu
 function loadSoundCloudApi(done){if(window.SC&&window.SC.Widget){done();return;}radioApiWaiters.push(done);if(radioApiLoading)return;radioApiLoading=true;const sc=document.createElement('script');sc.src='https://w.soundcloud.com/player/api.js';sc.async=true;sc.onload=()=>{radioApiLoading=false;const q=radioApiWaiters.splice(0);q.forEach(fn=>{try{fn();}catch(e){console.warn(e);}});};sc.onerror=()=>{radioApiLoading=false;radioApiWaiters=[];setRadioStatic(true);};document.head.appendChild(sc);}
 function stationData(index){const st=STATIONS[index];if(!st||st.kind!=='soundcloud')return null;return PLAYLIST_STORE.stations[st.slot]||null;}
 function soundCloudPlayerUrl(url){return 'https://w.soundcloud.com/player/?url='+encodeURIComponent(url)+'&color=%23ff9a3c&auto_play=true&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_artwork=false&visual=false';}
-function setRadioStatic(on){if(!AC||!radioStaticGain||!radioStaticLowGain)return;const t=AC.currentTime;radioStaticGain.gain.setTargetAtTime(on?SET.music*.075:0,t,.16);radioStaticLowGain.gain.setTargetAtTime(on?SET.music*.018:0,t,.2);}
+function setRadioStatic(on){if(!AC||!radioStaticGain||!radioStaticLowGain)return;const t=AC.currentTime;radioStaticGain.gain.setTargetAtTime(on?musicVol()*.075:0,t,.16);radioStaticLowGain.gain.setTargetAtTime(on?musicVol()*.018:0,t,.2);}
 function randomSoundCloudTrack(autoPlay=true){if(!radioWidget||radioRandomBusy)return;radioRandomBusy=true;const stationAtCall=MUS.station;try{radioWidget.getSounds(sounds=>{
   radioRandomBusy=false;if(MUS.station!==stationAtCall)return;
   if(!Array.isArray(sounds)||!sounds.length){radioWidgetStarted=false;radioWidgetError=true;setRadioStatic(radioIsAudible());return;}
   let pickIndex=Math.floor(Math.random()*sounds.length),lastIndex=radioLastTrackByStation[stationAtCall];
   if(sounds.length>1&&pickIndex===lastIndex)pickIndex=(pickIndex+1+Math.floor(Math.random()*(sounds.length-1)))%sounds.length;
   radioLastTrackByStation[stationAtCall]=pickIndex;
-  try{setRadioWidgetVolume(radioIsAudible()?(radioVoiceBusy?SET.music*24:SET.music*100):0);radioWidget.skip(pickIndex);if(autoPlay)setTimeout(()=>{if(MUS.station===stationAtCall){try{radioWidget.play();radioWidgetStarted=true;radioWidgetError=false;setRadioWidgetVolume(radioIsAudible()?(radioVoiceBusy?SET.music*24:SET.music*100):0);}catch(e){radioWidgetError=true;setRadioStatic(radioIsAudible());}}},280);}catch(e){radioWidgetError=true;setRadioStatic(radioIsAudible());}
+  try{setRadioWidgetVolume(radioIsAudible()?(radioVoiceBusy?musicVol()*24:musicVol()*100):0);radioWidget.skip(pickIndex);if(autoPlay)setTimeout(()=>{if(MUS.station===stationAtCall){try{radioWidget.play();radioWidgetStarted=true;radioWidgetError=false;setRadioWidgetVolume(radioIsAudible()?(radioVoiceBusy?musicVol()*24:musicVol()*100):0);}catch(e){radioWidgetError=true;setRadioStatic(radioIsAudible());}}},280);}catch(e){radioWidgetError=true;setRadioStatic(radioIsAudible());}
  });}catch(e){radioRandomBusy=false;radioWidgetError=true;setRadioStatic(radioIsAudible());console.warn('SoundCloud-Zufallstitel:',e);}}
 // Außerhalb eines Fahrzeugs läuft der Stream weiter, wird aber vollständig stummgeschaltet.
 function pauseSoundCloudRadio(){setRadioWidgetVolume(0);if(radioVoiceAudio)radioVoiceAudio.volume=0;setRadioStatic(false);}
@@ -221,14 +222,14 @@ function handleRadioTrackFinished(){if(radioTrackTransitionBusy||!radioWidget||!
  // Erst kommt eine zufällige Durchsage, danach startet der nächste zufällige Titel.
  playRadioVoice(playNext);
 }
-function bindSoundCloudWidget(){if(!radioWidget||radioWidget._portsolaraBound)return;radioWidget._portsolaraBound=true;const E=window.SC.Widget.Events;radioWidget.bind(E.PLAY,()=>{radioWidgetStarted=true;radioWidgetError=false;setRadioStatic(false);setRadioWidgetVolume(radioIsAudible()?(radioVoiceBusy?SET.music*24:SET.music*100):0);});radioWidget.bind(E.FINISH,handleRadioTrackFinished);radioWidget.bind(E.ERROR,()=>{radioWidgetError=true;radioWidgetStarted=false;setRadioStatic(radioIsAudible());});}
+function bindSoundCloudWidget(){if(!radioWidget||radioWidget._portsolaraBound)return;radioWidget._portsolaraBound=true;const E=window.SC.Widget.Events;radioWidget.bind(E.PLAY,()=>{radioWidgetStarted=true;radioWidgetError=false;setRadioStatic(false);setRadioWidgetVolume(radioIsAudible()?(radioVoiceBusy?musicVol()*24:musicVol()*100):0);});radioWidget.bind(E.FINISH,handleRadioTrackFinished);radioWidget.bind(E.ERROR,()=>{radioWidgetError=true;radioWidgetStarted=false;setRadioStatic(radioIsAudible());});}
 function activateSoundCloudRadio(index){const data=stationData(index),url=data&&normalizeSoundCloud(data.url||'');if(!url||!PLAYLIST_STORE.consentSC){if(radioWidget&&radioWidgetStation!==index){try{radioWidget.setVolume(0);radioWidget.pause();}catch(e){}radioWidgetStarted=false;radioWidgetStation=-1;}stopRadioVoice();setRadioStatic(radioIsAudible());return;}
  const host=$('radioPlayerHost');if(!host)return;setRadioStatic(false);
  loadSoundCloudApi(()=>{
   if(MUS.station!==index)return;
   if(!radioWidgetFrame){radioWidgetFrame=document.createElement('iframe');radioWidgetFrame.id='radioSCWidget';radioWidgetFrame.title='SoundCloud audio stream';radioWidgetFrame.allow='autoplay; encrypted-media';radioWidgetFrame.scrolling='no';radioWidgetFrame.src=soundCloudPlayerUrl(url);host.innerHTML='';host.appendChild(radioWidgetFrame);radioWidget=window.SC.Widget(radioWidgetFrame);bindSoundCloudWidget();radioWidget.bind(window.SC.Widget.Events.READY,()=>{if(MUS.station===index){radioWidgetStarted=false;randomSoundCloudTrack(true);}});radioWidgetStation=index;}
   else if(radioWidgetStation!==index){radioRandomBusy=false;radioTrackTransitionBusy=false;stopRadioVoice();radioWidget.setVolume(0);radioWidgetStation=index;radioWidgetStarted=false;radioWidgetError=false;try{radioWidget.load(url,{auto_play:true,visual:false,show_comments:false,show_user:false,show_reposts:false,show_artwork:false,callback:()=>{if(MUS.station===index)randomSoundCloudTrack(true);}});}catch(e){radioWidgetError=true;setRadioStatic(radioIsAudible());}}
-  else{setRadioWidgetVolume(radioIsAudible()?(radioVoiceBusy?SET.music*24:SET.music*100):0);if(!radioWidgetStarted&&!radioWidgetError)randomSoundCloudTrack(true);else if(radioWidgetError)setRadioStatic(radioIsAudible());}
+  else{setRadioWidgetVolume(radioIsAudible()?(radioVoiceBusy?musicVol()*24:musicVol()*100):0);if(!radioWidgetStarted&&!radioWidgetError)randomSoundCloudTrack(true);else if(radioWidgetError)setRadioStatic(radioIsAudible());}
  });}
 function syncCarRadio(){if(!P.inCar||mode!=='play'){pauseSoundCloudRadio();return;}activateSoundCloudRadio(MUS.station);}
 function fillRadioSettings(){for(let i=0;i<5;i++){const d=PLAYLIST_STORE.stations[i]||{};const n=$('radioStationName'+i),u=$('radioStationUrl'+i),label=d.name||('SoundCloud '+(i+1));if(n)n.value=label;if(u)u.value=d.url||'';if(STATIONS[SC_STATION_BASE+i])STATIONS[SC_STATION_BASE+i].name=label;}const c=$('plConsentSC');if(c)c.checked=!!PLAYLIST_STORE.consentSC;}
@@ -253,7 +254,7 @@ function updateAmbience(dt){if(!AC)return;const t=AC.currentTime;
  if(mode==='play'&&!c&&!a){if(night<.5&&Math.random()<dt*.25&&WX.rain<.2)chirp();if(night>.6&&Math.random()<dt*.6)cricket();}}
 function big(t,sub='',color='#ffd84a'){const b=$('big');b.innerHTML=`<span style="color:${color}">${KT(t)}</span><small>${KT(sub)}</small>`;b.style.opacity=1;bigT=3.5;}
 function say(who,txt){const t=KT(txt.replace(/\{n\}/g,esc(P.name)));$('dialog').innerHTML=`<b>${who}:</b> ${t}`;dialogT=Math.max(6,t.length*.075);speakAs(who,t);}
-function gpsTrackerTick(dt){const c=P.inCar;if(!c||!c.stolen||!c.hasTracker)return;c.trackerT=(c.trackerT??20)-dt;if(c.trackerT<=0){c.trackerT=20;GPS_TRACK.last=c.pos.clone();GPS_TRACK.lastAt=time;setWanted(Math.max(wanted,1));toast('📡 GPS-Punkt an Polizei gesendet – letzter Standort markiert');if(AC)tone(880,.12,'sine',.035,c.pos);}}
+function gpsTrackerTick(dt){const c=P.inCar;if(!c||!c.stolen||!c.hasTracker)return;c.trackerT=(c.trackerT??20)-dt;if(c.trackerT<=0){c.trackerT=20;GPS_TRACK.last=c.pos.clone();GPS_TRACK.lastAt=time;setWanted(Math.max(wanted,1));toast('GPS-Punkt an Polizei gesendet – letzter Standort markiert');if(AC)tone(880,.12,'sine',.035,c.pos);}}
 function removeCar(c){scene.remove(c.g);const i=cars.indexOf(c);if(i>=0)cars.splice(i,1);}
 function wantedCap(){try{return mission&&mission===missions[0]?1:5;}catch(e){return 5;}}
 function setWanted(n){const old=wanted;wanted=clamp(n,0,wantedCap());evadeT=0;if(wanted>old&&mode==='play'){wantedSound();if(Math.random()<.7)speak(pick(LINES.radio),{pitch:.8,rate:1.15,prio:1});}if(wanted===0){for(const c of police)removeCar(c);police.length=0;removeCops();}}

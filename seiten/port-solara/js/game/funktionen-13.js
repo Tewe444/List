@@ -17,6 +17,8 @@ function statsHTML(){const row=(n,v,max)=>`<div class="st"><span>${n}</span><b>$
 function seg(k,opts){return `<div class="seg" data-k="${k}">${opts.map(([v,n])=>`<button data-v="${v}" class="${String(SET[k])===String(v)?'on':''}">${n}</button>`).join('')}</div>`;}
 function settingsHTML(){return `<div class="set">
  <div class="row"><span>Grafikprofil</span>${seg('gfxPreset',[['potato','Potato'],['leicht','Leicht'],['normal','Normal'],['ultra','Ultra'],['custom','Eigenes']])}</div>
+ <div class="row"><span>Tiefeneffekt (Umgebungsverdeckung)</span>${seg('ao',[[1,'An'],[0,'Aus']])}</div>
+ <div class="row"><span>Motion Blur</span>${seg('motionBlur',[[1,'An'],[0,'Aus']])}</div>
  <div class="row"><span>Automatisch reduzieren</span>${seg('autoQuality',[[true,'An'],[false,'Aus']])}</div>
  <div class="row"><span>Tickrate automatisch anpassen (60–40)</span>${seg('autoSlowdown',[[true,'An'],[false,'Aus']])}</div>
  <div class="row"><span>Simulationstakte (40–60)</span><span class="val" id="simTps">${SIM_RATE.tps} / s</span></div>
@@ -25,20 +27,22 @@ function settingsHTML(){return `<div class="set">
  <div class="row"><span>Grafik-Auflösung</span><div><input type="range" min="35" max="130" step="5" data-k="gfxResolution" value="${Math.round(SET.gfxResolution*100)}"><span class="val"> ${Math.round(SET.gfxResolution*100)} %</span></div></div>
  <div class="row"><span>Detailradius (10–39.990 m)</span><div><input type="range" min="10" max="39990" step="10" data-k="gfxNear" value="${SET.gfxNear}"><span class="val" id="val-gfxNear"> ${SET.gfxNear} m</span></div></div>
  <div class="row"><span>Maximale Sichtweite (bis 40.000 m)</span><div><input type="range" min="40" max="40000" step="10" data-k="gfxFar" value="${SET.gfxFar}"><span class="val" id="val-gfxFar"> ${SET.gfxFar} m</span></div></div>
- <div class="row"><span>Musik</span><input type="range" min="0" max="1" step="0.05" data-k="music" value="${SET.music}"></div>
+ <div class="row"><span>Musik (nur im Auto)</span><input type="range" min="0" max="1" step="0.05" data-k="music" value="${SET.music}"></div>
  <div class="row"><span>Soundeffekte</span><input type="range" min="0" max="1" step="0.05" data-k="sfx" value="${SET.sfx}"></div>
  <div class="row"><span>Maus-Empfindlichkeit</span><input type="range" min="0.3" max="2" step="0.05" data-k="sens" value="${SET.sens}"></div>
- <div class="row"><span>Stimmen (Sprachausgabe)</span>${seg('voice',[[1,'An'],[0,'Aus']])}</div>
- <div class="row"><span>Musik zu Fuß</span>${seg('footMusic',[[1,'An'],[0,'Aus']])}</div>
+ <div class="row"><span>NPC-Stimmen</span>${seg('npcVoices',[[1,'An'],[0,'Aus']])}</div>
+ <div class="row"><span>Stimmen-Sprache</span>${seg('voiceLang',[['de','Deutsch'],['en','English']])}</div>
+ <div class="row"><span>Stimmen-Lautstärke</span><input type="range" min="0" max="1" step="0.05" data-k="voiceVol" value="${SET.voiceVol}"></div>
+ <div class="row"><span>Computerstimme (falls keine Aufnahme)</span>${seg('voice',[[1,'An'],[0,'Aus']])}</div>
  <div class="row"><span>Radiosender</span><span class="val">${STATIONS[MUS.station].name} – ${KT('im Fahrzeug mit <k>Q</k> wechseln','car')}</span></div>
  <div class="row"><span>SoundCloud-Radio</span><button class="smallbtn" id="openPlaylistSetup">5 Radiosender einrichten …</button></div>
  <div class="row"><span>Steuerung</span><button class="smallbtn" id="setctrl">${DEV_NAME[SET.input]} – anpassen …</button></div>
  <p class="tip">Standard sind 60 Simulationstakte/s. Bei hoher Last sinkt die Rate schrittweise bis auf 40 Takte/s, ohne die Spielzeit künstlich zu verlangsamen. Fällt die Bildrate unter 20 FPS, reduziert das Spiel automatisch die wirksame Sichtweite; erholt sie sich, wird die Sichtweite langsam wieder erhöht. Deine eingestellte Maximaldistanz bis 40.000 m bleibt gespeichert.</p></div>`;}
-function bindSettings(){for(const s of $('ppage').querySelectorAll('.seg'))s.onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=s.dataset.k,raw=b.dataset.v;if(k==='gfxPreset')setGfxPreset(raw);else if(k==='autoQuality'){SET.autoQuality=raw==='true'||raw==='1';saveSettings();}else if(k==='autoSlowdown'){SET.autoSlowdown=raw==='true'||raw==='1';saveSettings();}else{SET[k]=+raw;saveSettings();if(k==='quality')applyQuality();}applyVolumes();showPauseTab('set');uiClick();};
+function bindSettings(){for(const s of $('ppage').querySelectorAll('.seg'))s.onclick=e=>{const b=e.target.closest('button');if(!b)return;const k=s.dataset.k,raw=b.dataset.v;if(k==='gfxPreset')setGfxPreset(raw);else if(k==='autoQuality'){SET.autoQuality=raw==='true'||raw==='1';saveSettings();}else if(k==='autoSlowdown'){SET.autoSlowdown=raw==='true'||raw==='1';saveSettings();}else if(k==='voiceLang'){SET.voiceLang=raw==='en'?'en':'de';saveSettings();}else{SET[k]=+raw;saveSettings();if(k==='quality')applyQuality();}applyVolumes();showPauseTab('set');uiClick();};
  for(const inp of $('ppage').querySelectorAll('input[type=range]'))inp.oninput=()=>{const k=inp.dataset.k;let v=+inp.value;if(k==='gfxResolution')v=clamp(v/100,.35,1.3);if(k==='gfxNear'){SET.gfxNear=clamp(v,10,39990);if(SET.gfxFar<SET.gfxNear+10)SET.gfxFar=Math.min(40000,SET.gfxNear+10);}else if(k==='gfxFar'){SET.gfxFar=clamp(v,40,40000);if(SET.gfxFar<SET.gfxNear+10)SET.gfxNear=Math.max(10,SET.gfxFar-10);}else if(k==='gfxResolution')SET.gfxResolution=v;else SET[k]=v;if(k&&k.startsWith('gfx'))SET.gfxPreset='custom';saveSettings();applyQuality();applyVolumes();const el=$('val-'+k);if(el)el.textContent=' '+(k==='gfxResolution'?Math.round(v*100)+' %':Math.round(SET[k])+' m');const out=inp.parentElement&&inp.parentElement.querySelector('.val');if(out&&k==='gfxResolution')out.textContent=' '+Math.round(v*100)+' %';};
  {const sc=$('ppage').querySelector('#setctrl');if(sc)sc.onclick=()=>openCtrl(SET.input);const pl=$('ppage').querySelector('#openPlaylistSetup');if(pl)pl.onclick=()=>togglePlaylistDock(true);}}
 function helpHTML(){const im=SET.input,r=(k,t)=>`<div class="hk"><span>${k}</span>${t}</div>`,kk=(a,ctx)=>`<k>${esc(LB(a,ctx))}</k>`;
- const top=`<div class="ctop"><span>Steuerung:</span><div id="indev">${['kb','pad','touch'].map(k=>`<button data-in="${k}" class="${im===k?'on':''}">${DEV_NAME[k]}</button>`).join('')}</div><button class="smallbtn" id="openctrl">${im==='touch'?'✏️ Buttons anpassen':im==='pad'?'⚙️ Controller-Tasten belegen':'⚙️ Tasten belegen'}</button></div>`+(im==='pad'&&!PADS.connected?'<p class="tip">🔴 Noch kein Controller erkannt – schließ ihn an und drück eine Taste am Controller.</p>':'');
+ const top=`<div class="ctop"><span>Steuerung:</span><div id="indev">${['kb','pad','touch'].map(k=>`<button data-in="${k}" class="${im===k?'on':''}">${DEV_NAME[k]}</button>`).join('')}</div><button class="smallbtn" id="openctrl">${im==='touch'?'Buttons anpassen':im==='pad'?'Controller-Tasten belegen':'Tasten belegen'}</button></div>`+(im==='pad'&&!PADS.connected?'<p class="tip">Noch kein Controller erkannt – schließ ihn an und drück eine Taste am Controller.</p>':'');
  const pitch=im==='pad'?'<k>L-Stick ↕</k>':kk('jump','plane')+' / '+kk('sprint','plane');
  return top+`<div class="help"><div><h4>Zu Fuß</h4>${r(kk('move','foot'),'laufen')}${r(kk('look','foot'),'umsehen')}${r(kk('sprint','foot'),'sprinten')}${r(kk('jump','foot'),'springen')}${r(kk('use','foot'),'einsteigen / benutzen / Läden')}${r(kk('aim','foot'),'zielen (auf Kassierer zielen = Überfall)')}${r(kk('fire','foot'),'schießen / schlagen / werfen')}${r(kk('weapons','foot'),im==='touch'?'antippen: nächste Waffe · halten: Waffenrad':'Waffe wechseln')}${im!=='touch'?r(kk('wheel','foot')+' halten','Waffenrad'):''}${r(kk('reload','foot'),'nachladen')}
  <h4>Fahrzeuge</h4>${r(kk('fwd','car')+' '+kk('back','car'),'Gas / Bremse, rückwärts')}${r(kk('steer','car'),'lenken')}${r(kk('jump','car'),'Handbremse')}${r(kk('horn','car'),'hupen')}${r(kk('radio','car'),'Radiosender wechseln')}${r(kk('job','car'),'Nebenjob starten (Taxi, Polizei, Rettungswagen)')}${r(kk('fire','car'),'Panzer: Kanone abfeuern')}${r(kk('use','car'),'aussteigen (Boot: am Ufer / Steg)')}</div>
@@ -59,7 +63,7 @@ function padName(i){if(i==null||i<0)return '—';return (PADS.ps?PADN_PS:PADN_X)
 
 // ---------- Eingabegerät ----------
 function detectInput(){try{if(matchMedia('(pointer:coarse)').matches&&!matchMedia('(pointer:fine)').matches)return 'touch';}catch(e){}try{if(navigator.maxTouchPoints>0&&/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||''))return 'touch';}catch(e){}return 'kb';}
-function setInput(m,auto){if(!['kb','pad','touch'].includes(m)||SET.input===m)return;SET.input=m;saveSettings();applyInputMode();if(auto)toast(m==='pad'?'🎮 Steuerung: Controller':m==='touch'?'📱 Steuerung: Touch':'⌨️ Steuerung: Tastatur & Maus');}
+function setInput(m,auto){if(!['kb','pad','touch'].includes(m)||SET.input===m)return;SET.input=m;saveSettings();applyInputMode();if(auto)toast(m==='pad'?'Steuerung: Controller':m==='touch'?'Steuerung: Touch':'Steuerung: Tastatur & Maus');}
 function applyInputMode(){KTC.clear();const im=SET.input;
  try{document.body.classList.toggle('touch',im==='touch');document.body.classList.toggle('padmode',im==='pad');}catch(e){}
  if(im==='touch'&&!SET.tInit){SET.tInit=1;if(SET.quality>1)SET.quality=1;saveSettings();}
@@ -67,7 +71,7 @@ function applyInputMode(){KTC.clear();const im=SET.input;
  if(im!=='touch')tReleaseAll();
  TCH.sig='';hudZoom();inputTexts();renderInChoice();if(isOpen('ctrl'))renderCtrl();}
 function inputTexts(){const im=SET.input;
- try{$('skip').textContent='Überspringen ⏭ ('+(im==='pad'?padName(0):im==='touch'?'antippen':'Leertaste')+')';}catch(e){}
+ try{$('skip').textContent='Überspringen ('+(im==='pad'?padName(0):im==='touch'?'antippen':'Leertaste')+')';}catch(e){}
  try{const f=$('panel').querySelector('.pfoot');if(f)f.textContent=im==='pad'?`${padName(0)} auswählen · ${padName(1)} schließen`:im==='touch'?'Antippen zum Kaufen · ✕ schließt':`${keyName(KB.use[0]||KB.use[1])} oder Esc zum Schließen`;}catch(e){}}
 function hudZoom(){const z=clamp(Math.min(innerHeight/820,innerWidth/1400),.5,1);try{const de=document.documentElement;if(de&&de.style){de.style.setProperty('--hz',z.toFixed(3));de.style.setProperty('--to',String(SET.tOpacity));}}catch(e){}}
 function isOpen(id){const e=$(id);const d=e&&e.style&&e.style.display;return typeof d==='string'&&d!==''&&d!=='none';}
@@ -111,7 +115,7 @@ function kbReset(){for(const a of ACT_IDS)KB[a]=ACTS[a].def.slice();KLBL={};kbSa
 function getPad(){try{const l=navigator.getGamepads?navigator.getGamepads():null;if(!l)return null;for(const g of l)if(g&&g.connected!==false&&g.buttons&&g.buttons.length>=4)return g;}catch(e){}return null;}
 function padCtx(){return P.para?'para':P.inAir?(P.inAir.type==='heli'?'heli':'plane'):P.inCar?'car':'foot';}
 function pollPad(dt){const gp=getPad();
- if(!gp){if(PADS.connected){PADS.connected=false;padRelease();if(SET.input==='pad')toast('🎮 Controller getrennt');renderCtrl();}PADS.cur=[];PADS.prev=[];return;}
+ if(!gp){if(PADS.connected){PADS.connected=false;padRelease();if(SET.input==='pad')toast('Controller getrennt');renderCtrl();}PADS.cur=[];PADS.prev=[];return;}
  if(!PADS.connected){PADS.connected=true;PADS.id=String(gp.id||'Controller');PADS.ps=/054c|playstation|dualsense|dualshock/i.test(PADS.id)||/wireless controller/i.test(PADS.id)&&!/xbox|xinput|microsoft|045e/i.test(PADS.id);KTC.clear();renderCtrl();}
  PADS.prev=PADS.cur;PADS.cur=Array.from(gp.buttons,b=>!!(b&&(b.pressed||b.value>.5)));
  const ax=gp.axes||[];PADAX.lx=dzn(ax[0]||0);PADAX.ly=dzn(ax[1]||0);PADAX.rx=dzn(ax[2]||0);PADAX.ry=dzn(ax[3]||0);
@@ -281,8 +285,8 @@ function padLbl(a,ctx){const c=lctx(ctx),B=PADB,n=padName;
 function touchLbl(a,ctx){const c=lctx(ctx);
  switch(a){case 'move':case 'steer':case 'left':case 'right':return 'Joystick';case 'look':return 'Wischen';
   case 'fwd':return c==='car'?'▲ Gas':ctx==='plane'?'▲ Schub':'Joystick ↑';case 'back':return c==='car'||ctx==='plane'?'▼ Bremse':'Joystick ↓';
-  case 'sprint':return '» '+tLabel('sprint',ctx);case 'jump':return '⤒ '+tLabel('jump',ctx);case 'use':return '✋';case 'fire':return '💥';case 'aim':return '🎯';case 'reload':return '⟳';
-  case 'wheel':case 'wnext':case 'weapons':return '🔫';case 'job':return '★ Job';case 'horn':return '📯';case 'radio':return '📻';case 'map':return '🗺️';case 'pause':return '⏸️';}return '—';}
+  case 'sprint':return '» '+tLabel('sprint',ctx);case 'jump':return '⤒ '+tLabel('jump',ctx);case 'use':return '◆';case 'fire':return '●';case 'aim':return '◎';case 'reload':return '⟳';
+  case 'wheel':case 'wnext':case 'weapons':return '▲';case 'job':return '★ Job';case 'horn':return '♪';case 'radio':return '♫';case 'map':return '▦';case 'pause':return 'II';}return '—';}
 function LB(a,ctx){ctx=ctx||padCtx();const im=SET.input;if(im==='pad')return padLbl(a,ctx);if(im==='touch')return touchLbl(a,ctx);
  switch(a){case 'move':return [KB.fwd,KB.left,KB.back,KB.right].map(b=>keyName(b[0]||b[1])).join(' ');case 'steer':return keyName(KB.left[0]||KB.left[1])+' '+keyName(KB.right[0]||KB.right[1]);case 'look':return 'Maus';case 'weapons':return '1–0 / Mausrad';}
  const b=KB[a];return b?keyName(b[0]||b[1]):'—';}
@@ -293,15 +297,15 @@ function ktDo(s,ctx){const im=SET.input,lb=a=>LB(a,ctx),K_=a=>`<k>${esc(lb(a))}<
   s=s.replace(/<k>W<\/k><k>A<\/k><k>S<\/k><k>D<\/k>/g,K_('move')).replace(/<k>A<\/k><k>D<\/k>/g,K_('steer'))
    .replace(/<k>W<\/k><k>S<\/k>/g,lctx(ctx)==='car'||ctx==='plane'?K_('fwd')+K_('back'):K_('move'))
    .replace(/<k>P<\/k> (oder|\/) <k>Esc<\/k>/g,K_('pause'))
-   .replace(/Tasten <k>1<\/k>–<k>9<\/k>, <k>0<\/k> oder Mausrad wechseln die Waffe\./g,im==='pad'?`${K_('wheel')} gedrückt halten öffnet das Waffenrad, ${K_('wnext')} nimmt die nächste Waffe.`:'🔫 antippen wechselt die Waffe, gedrückt halten öffnet das Waffenrad.')
+   .replace(/Tasten <k>1<\/k>–<k>9<\/k>, <k>0<\/k> oder Mausrad wechseln die Waffe\./g,im==='pad'?`${K_('wheel')} gedrückt halten öffnet das Waffenrad, ${K_('wnext')} nimmt die nächste Waffe.`:'▲ antippen wechselt die Waffe, gedrückt halten öffnet das Waffenrad.')
    .replace(/<k>1<\/k>–<k>9<\/k>, <k>0<\/k>(, Mausrad| oder Mausrad)?/g,K_('weapons'))
-   .replace(/<k>(\d)<\/k> ([^<·]+?) wählen/g,(m,d,w)=>im==='pad'?`${w} im Waffenrad (${K_('wheel')}) wählen`:`${w} mit 🔫 wählen`)
+   .replace(/<k>(\d)<\/k> ([^<·]+?) wählen/g,(m,d,w)=>im==='pad'?`${w} im Waffenrad (${K_('wheel')}) wählen`:`${w} mit ▲ wählen`)
    .replace(/ \(<k>\d<\/k>\)/g,'')
    .replace(/ – vorher einmal ins Bild klicken/g,'')
    .replace(/<b>Maus<\/b> umsehen/g,im==='pad'?'<k>R-Stick</k> umsehen':'<b>rechts wischen</b> = umsehen')
    .replace(/Mit der Maus zielst du/g,im==='pad'?'Mit dem rechten Stick zielst du':'Durch Wischen zielst du')
    .replace(/Maus zielt/g,im==='pad'?'R-Stick zielt':'Wischen zielt')
-   .replace(/1–0 \/ Mausrad wechseln/g,im==='pad'?`${lb('wheel')} Waffenrad · ${lb('wnext')} nächste`:'🔫 wechseln')
+   .replace(/1–0 \/ Mausrad wechseln/g,im==='pad'?`${lb('wheel')} Waffenrad · ${lb('wnext')} nächste`:'▲ wechseln')
    .replace(/Klick auf die Karte setzt einen/g,im==='pad'?`${padName(0)} setzt am Cursor (L-Stick) einen`:'Tipp auf die Karte setzt einen').replace(/Nochmal klicken entfernt ihn\./g,im==='pad'?`Nochmal ${padName(0)} entfernt ihn. Reiter: ${padName(4)} / ${padName(5)}`:'Nochmal tippen entfernt ihn.');}
  s=s.replace(/<k>([^<]+)<\/k>|<b>(Linksklick gedrückt halten|Linksklick|Rechtsklick|Mausrad)<\/b>|\b(Linksklick|Rechtsklick|Mausrad|Maustasten|Leertaste|Shift)\b|aus \(E\)|Nebenmission \(F\)|\b([EF]) drücken/g,(m,k,b,w,d)=>{
   if(k!=null){if(k==='Esc'&&im==='kb')return m;const a=KTOK[k];if(a)return K_(a);if(/^\d$/.test(k))return im==='kb'?m:K_('weapons');return m;}
@@ -320,13 +324,13 @@ function renderCtrl(){if(!isOpen('ctrl'))return;const d=CTRL.dev;
  if(d==='kb'){h+=`<table class="btab"><tr><th>Aktion</th><th>Taste</th><th>Zweite Taste</th></tr>${ACT_IDS.map(a=>`<tr><td><b>${ACTS[a].n}</b>${ACTS[a].d?`<small>${ACTS[a].d}</small>`:''}</td>${[0,1].map(s=>{const cap=KCAP&&KCAP.a===a&&KCAP.s===s;return `<td><button class="kbtn${cap?' cap':''}" data-a="${a}" data-s="${s}">${cap?'Taste drücken …':esc(keyName(KB[a][s]))}</button></td>`;}).join('')}</tr>`).join('')}</table>
   <p class="tip">Klick auf ein Feld und drück dann die neue Taste oder Maustaste. <b>Esc</b> bricht ab. Mit <k>1</k>–<k>0</k> wählst du Waffen direkt, das Mausrad wechselt sie immer.</p>
   <div class="set">${rowRange('Maus-Empfindlichkeit','sens',.3,2,.05)}</div><div class="crow2"><button class="smallbtn" id="kbreset">Standard wiederherstellen</button></div>`;}
- else if(d==='pad'){h+=`<p class="pstat">${PADS.connected?'🟢 Verbunden: '+esc(PADS.id.slice(0,70)):'🔴 Noch kein Controller erkannt – schließ ihn an (USB oder Bluetooth) und drück eine Taste am Controller.'}</p>
+ else if(d==='pad'){h+=`<p class="pstat">${PADS.connected?'Verbunden: '+esc(PADS.id.slice(0,70)):'Noch kein Controller erkannt – schließ ihn an (USB oder Bluetooth) und drück eine Taste am Controller.'}</p>
   <div class="pcols">${['foot','car','air','all'].map(g=>`<div><h4>${PADG[g]}</h4>${PADA[g].map(([a,n])=>{const cap=PADS.cap&&PADS.cap.g===g&&PADS.cap.a===a;return `<div class="prow"><span>${n}</span><button class="kbtn${cap?' cap':''}" data-g="${g}" data-a="${a}">${cap?'Taste drücken …':padName(PADB[g][a])}</button></div>`;}).join('')}</div>`).join('')}</div>
   <div class="pfix"><b>Fest belegt:</b> linker Stick = laufen / lenken / steuern · rechter Stick = Kamera · im Menü: Steuerkreuz bewegen, ${padName(0)} auswählen, ${padName(1)} zurück, ${padName(4)}/${padName(5)} Reiter wechseln.</div>
   <div class="set">${rowRange('Kamera-Empfindlichkeit','padSens',.3,2.5,.05)}${rowSeg('Kamera hoch / runter','invY',[[0,'Normal'],[1,'Umgekehrt']])}${rowSeg('Flugzeug: Stick nach hinten =','flightInv',[[1,'Nase hoch'],[0,'Nase runter']])}${rowSeg('Zielhilfe (rastet auf Gegner ein)','assist',[[1,'An'],[0,'Aus']])}${rowSeg('Vibration','rumble',[[1,'An'],[0,'Aus']])}</div>
   <div class="crow2"><button class="smallbtn" id="padreset">Standard wiederherstellen</button></div>`;}
- else{h+=`<p class="tip">Links tippen und ziehen = Joystick zum Laufen, Lenken und Steuern (er erscheint da, wo du hintippst). Rechts wischen = Kamera drehen. Die Buttons wechseln automatisch – zu Fuß, im Fahrzeug und beim Fliegen gibt es eigene Layouts.<br>🔫 antippen = nächste Waffe, gedrückt halten = Waffenrad.</p>
-  <div class="crow2"><button class="bigbtn" id="tedopen">✏️ Buttons verschieben & Größe ändern</button></div>
+ else{h+=`<p class="tip">Links tippen und ziehen = Joystick zum Laufen, Lenken und Steuern (er erscheint da, wo du hintippst). Rechts wischen = Kamera drehen. Die Buttons wechseln automatisch – zu Fuß, im Fahrzeug und beim Fliegen gibt es eigene Layouts.<br>▲ antippen = nächste Waffe, gedrückt halten = Waffenrad.</p>
+  <div class="crow2"><button class="bigbtn" id="tedopen">Buttons verschieben & Größe ändern</button></div>
   <div class="set">${rowRange('Button-Sichtbarkeit','tOpacity',.25,1,.05)}${rowRange('Wisch-Empfindlichkeit','touchSens',.3,2.5,.05)}${rowSeg('Zielen-Button','aimToggle',[[1,'Antippen = an / aus'],[0,'Gedrückt halten']])}${rowSeg('Zielhilfe (rastet auf Gegner ein)','assist',[[1,'An'],[0,'Aus']])}${rowSeg('Flugzeug: Joystick nach hinten =','flightInv',[[1,'Nase hoch'],[0,'Nase runter']])}${rowSeg('Vibration beim Tippen','rumble',[[1,'An'],[0,'Aus']])}</div>`;}
  const cb=$('cbody');cb.innerHTML=h;
  for(const b of cb.querySelectorAll('.cdev button'))b.onclick=()=>{CTRL.dev=b.dataset.dev;KCAP=null;PADS.cap=null;uiClick();renderCtrl();};
@@ -346,8 +350,8 @@ function renderTEdit(){const c=TED.ctx,area=$('tearea');const jp=TLAY.joy,js=jp.
  const sz=$('tesize');sz.disabled=!sel;if(sel)sz.value=String(tEdP(sel).s);}
 function tEdP(id){return id==='joy'||id==='map'||id==='pause'?TLAY[id]:TLAY[TED.ctx][id];}
 function renderInChoice(){try{const w=$('inwrap');if(!w||!w.querySelectorAll)return;for(const b of w.querySelectorAll('[data-in]'))b.classList.toggle('on',b.dataset.in===SET.input);
- const im=SET.input;$('insub').textContent=im==='kb'?'WASD laufen · Maus umsehen · Linksklick schießen':im==='touch'?'Joystick links · rechts wischen · Buttons frei verschiebbar':PADS.connected?'🟢 Controller verbunden':'Controller anschließen und eine Taste drücken';
- $('inbind').textContent=im==='touch'?'✏️ Buttons anpassen':im==='pad'?'⚙️ Controller-Tasten belegen':'⚙️ Tasten belegen';
+ const im=SET.input;$('insub').textContent=im==='kb'?'WASD laufen · Maus umsehen · Linksklick schießen':im==='touch'?'Joystick links · rechts wischen · Buttons frei verschiebbar':PADS.connected?'Controller verbunden':'Controller anschließen und eine Taste drücken';
+ $('inbind').textContent=im==='touch'?'Buttons anpassen':im==='pad'?'Controller-Tasten belegen':'Tasten belegen';
  const sm=$('creator').querySelector('small');if(sm)sm.textContent=im==='touch'?'Wisch im Bild, um die Figur zu drehen.':im==='pad'?'Mit dem rechten Stick drehst du die Figur. Start = los geht’s.':'Mit gedrückter Maus im Bild kannst du die Figur drehen.';}catch(e){}}
 // --- Querformat-Hinweis & Vollbild auf dem Handy ---
 function portraitTick(){const e=$('tportrait');if(!e)return;const on=SET.input==='touch'&&(mode==='play'||mode==='cine'||mode==='mcine')&&innerHeight>innerWidth*1.05;const want=on?'flex':'none';if(e.style.display!==want)e.style.display=want;}

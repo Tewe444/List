@@ -139,7 +139,20 @@ function updateFX(dt){
 
 // ---------- Fahndung & Schaden ----------
 function noHeat(){return mission&&mission.steps[si]&&mission.steps[si].noHeat;}
-function addHeat(n,cop){if(noHeat()||(activity&&activity.noHeat))return;if(heatT>0&&!cop)return;heatT=cop?1.5:3;setWanted(Math.min(5,Math.max(cop?2:1,wanted+n)));}
+const HEAT={pts:0,lvlT:0};
+function addHeat(n,cop){if(noHeat()||(activity&&activity.noHeat))return;if(heatT>0)return;heatT=cop?1.2:2.5;
+ if(wanted===0){setWanted(cop?2:1);return;}if(cop&&wanted<2){setWanted(2);return;}
+ HEAT.pts+=n*(cop?1:.6);const need=wanted===1?1:wanted===2?3:wanted===3?6:10,minT=wanted<=2?5:wanted===3?25:40;
+ if(HEAT.pts>=need&&time-HEAT.lvlT>minT){HEAT.pts=0;setWanted(Math.min(5,wanted+1));}}
+{const _sw=setWanted;setWanted=function(n){const o=wanted;const r=_sw.apply(this,arguments);if(wanted!==o){HEAT.lvlT=time;if(wanted<o)HEAT.pts=0;}return r;};}
+// Suchmodus: Sieht dich keine Streife und kein Heli, sucht die Polizei nur am zuletzt gesehenen Ort
+const SEEN={pos:null,t:-99,set:false};
+setInterval(()=>{try{if(mode!=='play'||wanted===0){SEEN.pos=null;return;}let seen=false;
+ for(const c of police){if(Math.hypot(c.pos.x-P.pos.x,c.pos.z-P.pos.z)<70){seen=true;break;}}
+ if(!seen)for(const n of peds){if(n.kind==='cop'&&n.state==='fight'&&n.c.g.position.distanceTo(P.pos)<50){seen=true;break;}}
+ if(!seen&&policeHeli&&policeHeli.g.position.distanceTo(P.pos)<110)seen=true;
+ if(seen||!SEEN.pos){SEEN.pos=P.pos.clone();SEEN.t=time;if(SEEN.set){SEEN.set=false;GPS_TRACK.lastAt=-9999;}}
+ else if(time-SEEN.t>3){if(!SEEN.set)toast('Die Polizei hat dich aus den Augen verloren – bleib außer Sicht!');SEEN.set=true;GPS_TRACK.last=SEEN.pos;GPS_TRACK.lastAt=time;}}catch(e){}},250);
 function hitMarker(){hitT=.15;}
 function spawnCash(x,z,amt){const m=new THREE.Mesh(cashGeo,cashMat);m.position.set(x+RR(-.5,.5),groundY(x,z)+.18,z+RR(-.5,.5));scene.add(m);loot.push({m,amt,t:45,type:'cash'});}
 function spawnAmmo(x,z,wid,amt){const m=weaponModel(wid);m.scale.setScalar(1.5);m.position.set(x,groundY(x,z)+.25,z);scene.add(m);loot.push({m,amt,wid,t:45,type:'ammo'});}
@@ -369,11 +382,11 @@ function updatePlane(a,dt,thr,pitch,roll){
  if(thr>0)a.speed+=(a.acc||(a.jet?22:14))*dt;else if(thr<0)a.speed-=24*dt;else a.speed-=(a.airborne?.8:4)*dt;a.speed=clamp(a.speed,0,max);
  const gy=groundY(a.g.position.x,a.g.position.z);a.roll+=(roll*.9-a.roll)*Math.min(1,dt*3);
  if(!a.airborne){a.p=0;a.h+=roll*.7*dt*Math.min(1,a.speed/8);if(a.speed>tko&&pitch>0){a.airborne=true;a.p=.18;}}
- else{a.p=clamp(a.p+pitch*.9*dt,-.9,.9);a.h+=a.roll*.9*dt;if(a.speed<tko*.8)a.p-=.5*dt;}
+ else{a.p=clamp(a.p+pitch*.9*dt,-.9,.9);if(!pitch)a.p*=1-Math.min(1,dt*.35);a.p-=Math.abs(a.roll)*.12*dt;a.h+=a.roll*.9*clamp(45/Math.max(a.speed,1),.6,1.3)*dt;a.speed=clamp(a.speed-Math.sin(a.p)*9.81*.55*dt,0,max*1.08);if(a.speed<tko*.8){a.p-=.5*dt;if(a===P.inAir&&time>(a.stallT||0)){a.stallT=time+.6;tone(880,.08,'square',.03);}}}
  const cp=Math.cos(a.p);const v=tmpV.set(Math.sin(a.h)*cp,Math.sin(a.p),Math.cos(a.h)*cp).multiplyScalar(a.speed);
  if(a.airborne&&a.speed<tko*.8)v.y-=(tko*.8-a.speed)*.6;
  a.prev.copy(a.g.position);a.g.position.addScaledVector(v,dt);
- if(a.airborne&&a.g.position.y<=gy+.05){if(a.p<-.25||v.y<-13||overWater(a.g.position)){damageAir(a,9999,'crash');return;}a.airborne=false;a.g.position.y=gy;a.p=0;}
+ if(a.airborne&&a.g.position.y<=gy+.05){if(a.p<-.38||v.y<-15||overWater(a.g.position)){damageAir(a,9999,'crash');return;}a.airborne=false;a.g.position.y=gy;a.p=0;}
  if(!a.airborne){a.g.position.y=gy;if(overWater(a.g.position)){damageAir(a,9999,'crash');return;}}
  a.g.position.y=Math.min(a.g.position.y,900);airCollide(a);
  a.g.rotation.set(-a.p,a.h,a.airborne?-a.roll*.8:0,'YXZ');

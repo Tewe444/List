@@ -378,7 +378,7 @@ function evNearNode(minD,maxD){for(let k=0;k<60;k++){const a={i:Math.floor(Math.
 function sirenAt(pos){tone(780,.22,'sawtooth',.03,pos);setTimeout(()=>tone(1040,.22,'sawtooth',.03,pos),240);}
 function evChase(){const a=evNearNode(120,240);if(!a)return null;const c=makeCar(pick(carColors),false,pick(['sport','muscle','sedan','compact']));placeAI(c,a,pick(nbrs(a)),0);c.mode='flee';c.cruise=R(17,22);c.keep=true;cars.push(c);
  const cops=[0,1].map(k=>{const p=makeCar(0,true);p.mode='evcop';p.target=c;const A=nd(c.a.i,c.a.j);p.pos.set(A.x-Math.sin(c.h)*(14+k*10),0,A.z-Math.cos(c.h)*(14+k*10));p.h=c.h;p.g.position.copy(p.pos);p.keep=true;cars.push(p);return p;});
- toast('🚨 Polizeiverfolgung in der Nähe!');return {type:'chase',c,cops,t:0,sir:0,
+ toast('Polizeiverfolgung in der Nähe!');return {type:'chase',c,cops,t:0,sir:0,
   tick(e,dt){e.t+=dt;e.sir-=dt;if(e.sir<=0){e.sir=.6;sirenAt(e.cops[0].pos);}EV.chase=1;
    if(e.c.mode==='wreck'&&!e.paid){e.paid=true;if(['player','ram','crash','rocket','boom'].includes(e.c.lastSrc)){P.money+=250;cashSound();big('VERDÄCHTIGER GESTOPPT','+$250 Belohnung','#7fd1ff');}for(const p of e.cops)p.target=null;}
    if(e.t>75||distP(e.c.pos)>420)e.done=true;},
@@ -404,7 +404,7 @@ function evBreakdance(){const b=pick(blockInfo.filter(q=>(q.type==='downtown'||q
  for(let k=0;k<6;k++){const a=-.3-k*.5;puppet(x+Math.cos(a)*3.4,z+Math.sin(a)*2.2+.5,Math.atan2(x-(x+Math.cos(a)*3.4),z-(z+Math.sin(a)*2.2)),k%2?'clap':'idle',{group:g});}
  return {type:'break',g,t:0,x,z,beat:0,tick(e,dt){e.t+=dt;e.beat-=dt;if(e.beat<=0&&distP(e)<45){e.beat=.476;tone(e.t%1.9<.95?70:110,.12,'sine',.07,new THREE.Vector3(e.x,1,e.z));}if(e.t>110||distP(e)>260)e.done=true;},end(e){removePuppets(e.g);}};}
 function evRacers(){const a=evNearNode(150,260);if(!a)return null;const path=[a];let cur=a,prev=null;for(let k=0;k<14;k++){const ns=nbrs(cur).filter(n=>!prev||!(n.i===prev.i&&n.j===prev.j));const n=pick(ns);prev=cur;cur=n;path.push(n);}
- const pts=path.map(n=>nd(n.i,n.j));const rs=[0,1].map(k=>{const c=routeCarSpawn(pick(['sport','super','muscle']),pick(NICE_COLORS),pts,R(26,31),k?5.6:2);c.keep=true;c.racer=true;return c;});toast('🏁 Illegales Straßenrennen in der Nähe!');
+ const pts=path.map(n=>nd(n.i,n.j));const rs=[0,1].map(k=>{const c=routeCarSpawn(pick(['sport','super','muscle']),pick(NICE_COLORS),pts,R(26,31),k?5.6:2);c.keep=true;c.racer=true;return c;});toast('Illegales Straßenrennen in der Nähe!');
  return {type:'racers',rs,t:0,tick(e,dt){e.t+=dt;if(Math.random()<dt*.8)hornAt(e.rs[0].pos);if(e.t>60||e.rs.every(c=>c.route.done))e.done=true;},end(e){for(const q of e.rs)if(cars.includes(q)&&q!==P.inCar){q.keep=false;removeCar(q);}}};}
 function evTick(dt){EV.chase=0;for(let i=EV.list.length-1;i>=0;i--){const e=EV.list[i];try{e.tick(e,dt);}catch(err){e.done=true;}if(e.done){try{e.end(e);}catch(err){}EV.list.splice(i,1);}}
  if(mode!=='play'||mission||activity||race||wanted>0)return;const inCity=Math.abs(P.pos.x)<HALF+40&&Math.abs(P.pos.z)<HALF+40;if(!inCity)return;

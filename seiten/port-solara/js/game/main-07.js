@@ -27,11 +27,11 @@ const TL_DEF={joy:{x:.15,y:.7,s:.32},map:{x:.62,y:.09,s:.11},pause:{x:.7,y:.09,s
  air:{gas:{x:.89,y:.7,s:.18},brake:{x:.73,y:.84,s:.14},jump:{x:.9,y:.44,s:.14},sprint:{x:.75,y:.58,s:.14},use:{x:.58,y:.85,s:.13},fire:{x:.6,y:.63,s:.13},aim:{x:.46,y:.85,s:.12}}};
 let TLAY=null;
 tLoad();
-const TB={fire:{i:'💥',l:{foot:'Feuer',car:'Kanone',air:'MG'}},aim:{i:'🎯',l:{foot:'Zielen',air:'Raketen'}},
+const TB={fire:{i:'●',l:{foot:'Feuer',car:'Kanone',air:'MG'}},aim:{i:'◎',l:{foot:'Zielen',air:'Raketen'}},
  jump:{i:'⤒',l:{foot:'Springen',para:'Schirm',car:'Handbremse',heli:'Steigen',plane:'Nase hoch',air:'Steigen'}},sprint:{i:'»',l:{foot:'Sprint',heli:'Sinken',plane:'Nase runter',air:'Sinken'}},
- use:{i:'✋',l:{foot:'Aktion',car:'Aussteigen',air:'Raus'}},reload:{i:'⟳',l:{foot:'Laden'}},weapon:{i:'🔫',l:{foot:'Waffe'}},
- gas:{i:'▲',l:{car:'Gas',air:'Schub'}},brake:{i:'▼',l:{car:'Bremse',air:'Bremse'}},horn:{i:'📯',l:{car:'Hupe'}},radio:{i:'📻',l:{car:'Radio'}},job:{i:'★',l:{car:'Job'}},
- map:{i:'🗺️',l:{all:'Karte'}},pause:{i:'⏸️',l:{all:'Pause'}}};
+ use:{i:'◆',l:{foot:'Aktion',car:'Aussteigen',air:'Raus'}},reload:{i:'⟳',l:{foot:'Laden'}},weapon:{i:'▲',l:{foot:'Waffe'}},
+ gas:{i:'▲',l:{car:'Gas',air:'Schub'}},brake:{i:'▼',l:{car:'Bremse',air:'Bremse'}},horn:{i:'♪',l:{car:'Hupe'}},radio:{i:'♫',l:{car:'Radio'}},job:{i:'★',l:{car:'Job'}},
+ map:{i:'▦',l:{all:'Karte'}},pause:{i:'II',l:{all:'Pause'}}};
 const TCH={joy:null,look:null,btn:new Map(),hold:new Set(),sig:'',els:{},hlT:0};
 const tBase=()=>Math.min(innerWidth,innerHeight,560);
 
@@ -43,7 +43,7 @@ const KTC=new Map();
 const KTOK={W:'fwd',A:'left',S:'back',D:'right',Shift:'sprint',Leertaste:'jump',E:'use',F:'job',R:'reload',H:'horn',Q:'radio',M:'map',P:'pause',Esc:'pause',Tab:'wheel',T:'time'};
 
 // ---------- Oberflächen: Steuerungs-Menü, Touch-Editor, Auswahl im Charakter-Editor ----------
-try{document.body.insertAdjacentHTML('beforeend',`<div id="touch"></div><div id="tportrait"><i>📱</i>Bitte dreh dein Handy quer</div>
+try{document.body.insertAdjacentHTML('beforeend',`<div id="touch"></div><div id="tportrait"><i></i>Bitte dreh dein Handy quer</div>
 <div id="ctrl"><div class="cbox"><div class="chead"><h2>STEUERUNG</h2><button class="smallbtn" id="cclose">✕ Fertig</button></div><div id="cbody"></div></div></div>
 <div id="tedit"><div id="tearea"></div><div id="tebar"><b>Touch-Buttons anpassen</b><div class="teseg" id="tectx"><button data-c="foot" class="on">Zu Fuß</button><button data-c="car">Fahrzeug</button><button data-c="air">Fliegen</button></div>
 <small id="tesel">Zieh die Buttons an eine neue Stelle. Tipp einen an, um seine Größe zu ändern.</small><input type="range" id="tesize" min="0.06" max="0.45" step="0.005" value="0.14">
@@ -79,7 +79,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='touch
 // Charakter im Editor auch per Finger drehen
 {let cx=null;renderer.domElement.addEventListener('pointerdown',e=>{if(mode==='creator'&&e.pointerType!=='mouse')cx=e.clientX;});addEventListener('pointermove',e=>{if(cx!=null&&mode==='creator'&&e.pointerType!=='mouse'){creatorYaw-=(e.clientX-cx)*.01;cx=e.clientX;}});addEventListener('pointerup',()=>{cx=null;});}
 // --- Auswahl im Charakter-Editor ---
-try{$('namewrap').insertAdjacentHTML('afterend',`<div id="inwrap"><label>STEUERUNG</label><div class="inch">${['kb','touch','pad'].map(k=>`<button data-in="${k}"><i>${DEV_NAME[k].split(' ')[0]}</i>${k==='kb'?'Tastatur':k==='touch'?'Touch':'Controller'}</button>`).join('')}</div><div class="insub" id="insub"></div><button class="smallbtn" id="inbind">⚙️ Tasten belegen</button></div>`);
+try{$('namewrap').insertAdjacentHTML('afterend',`<div id="inwrap"><label>STEUERUNG</label><div class="inch">${['kb','touch','pad'].map(k=>`<button data-in="${k}"><i>${DEV_NAME[k].split(' ')[0]}</i>${k==='kb'?'Tastatur':k==='touch'?'Touch':'Controller'}</button>`).join('')}</div><div class="insub" id="insub"></div><button class="smallbtn" id="inbind">Tasten belegen</button></div>`);
  $('inwrap').addEventListener('click',e=>{const b=e.target.closest('[data-in]');if(b){setInput(b.dataset.in);uiClick();return;}if(e.target.closest('#inbind'))openCtrl(SET.input);});}catch(e){}
 addEventListener('touchend',()=>{try{if(AC&&AC.state==='suspended')AC.resume();}catch(e){}},{passive:true});
 // ---------- Pro Bild: Eingaben abfragen ----------

@@ -9,53 +9,8 @@
 <link rel="stylesheet" href="css/menu-gta.css">
 <link rel="stylesheet" href="css/intro.css">
 
-<style>
-#release-countdown{
- position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;
- box-sizing:border-box;padding:24px;background:
- radial-gradient(ellipse at 78% 22%,rgba(255,116,55,.22),transparent 38%),
- radial-gradient(ellipse at 18% 78%,rgba(124,52,173,.2),transparent 42%),
- linear-gradient(145deg,#080714,#17102c 58%,#2a1236);
- color:#fff;font-family:'Segoe UI',Arial,sans-serif;text-align:center;
-}
-#release-countdown *{box-sizing:border-box}
-#release-countdown .rc-card{width:min(900px,100%);padding:clamp(24px,5vw,58px);border:1px solid rgba(255,255,255,.16);
- background:rgba(8,7,20,.46);box-shadow:0 24px 90px rgba(0,0,0,.38);backdrop-filter:blur(12px)}
-#release-countdown .rc-eyebrow{font-size:12px;font-weight:800;letter-spacing:5px;color:#ffb36d}
-#release-countdown h1{margin:18px 0 10px;font-size:clamp(32px,6vw,62px);line-height:1.05;letter-spacing:2px}
-#release-countdown .rc-desc{margin:0 0 32px;color:#ded5e8;font-size:clamp(14px,2vw,18px);letter-spacing:.5px}
-#release-countdown .rc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(8px,2vw,18px);max-width:700px;margin:0 auto}
-#release-countdown .rc-unit{padding:clamp(12px,3vw,24px) 8px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.055)}
-#release-countdown .rc-value{display:block;font-variant-numeric:tabular-nums;font-size:clamp(30px,6vw,58px);font-weight:900;line-height:1.1;color:#fff0c2}
-#release-countdown .rc-label{display:block;margin-top:8px;color:#c9bbd8;font-size:clamp(10px,1.4vw,13px);font-weight:700;letter-spacing:2px}
-#release-countdown .rc-foot{margin:28px 0 0;color:#b7a9c7;font-size:12px;letter-spacing:1.4px}
-@media(max-width:480px){
- #release-countdown{padding:14px}
- #release-countdown .rc-card{padding:26px 14px}
- #release-countdown .rc-eyebrow{letter-spacing:2.5px}
- #release-countdown .rc-grid{gap:6px}
- #release-countdown .rc-unit{padding:14px 3px}
- #release-countdown .rc-label{letter-spacing:1px}
-}
-</style>
-
 </head>
 <body>
-
-<div id="release-countdown" role="dialog" aria-modal="true" aria-labelledby="release-countdown-title">
-  <div class="rc-card">
-    <div class="rc-eyebrow">PORT SOLARA</div>
-    <h1 id="release-countdown-title">Der Countdown läuft</h1>
-    <p class="rc-desc">Freischaltung am 24.12.2026 um 00:00:00 Uhr (MEZ)</p>
-    <div class="rc-grid" aria-label="Zeit bis zur Freischaltung">
-      <div class="rc-unit"><span class="rc-value" id="rc-days">0</span><span class="rc-label">TAGE</span></div>
-      <div class="rc-unit"><span class="rc-value" id="rc-hours">00</span><span class="rc-label">STUNDEN</span></div>
-      <div class="rc-unit"><span class="rc-value" id="rc-minutes">00</span><span class="rc-label">MINUTEN</span></div>
-      <div class="rc-unit"><span class="rc-value" id="rc-seconds">00</span><span class="rc-label">SEKUNDEN</span></div>
-    </div>
-    <p class="rc-foot">PORT SOLARA · SKY GAMES</p>
-  </div>
-</div>
 
 <div id="title">
   <div class="sun"></div><div class="horizon"></div>
@@ -139,7 +94,7 @@
     <path d="M12 3a9 9 0 0 1 9 9" fill="none" stroke="#5C3600" stroke-width="3.5" stroke-linecap="round"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.9s" repeatCount="indefinite"/></path>
   </svg>
 </div>
-<div id="saveInd">💾 GESPEICHERT</div>
+<div id="saveInd">GESPEICHERT</div>
 <div id="cine">
   <div id="fade"></div>
   <div id="cineWarp"></div>
@@ -170,13 +125,13 @@
       <button type="button" data-cine-action="fire" aria-label="Schießen">FEUER</button>
     </div>
   </div>
-  <button id="skip">Überspringen ⏭ (Leertaste)</button>
+  <button id="skip">Überspringen (Leertaste)</button>
 </div>
 <div id="creator">
   <h2 id="ctitle2">DEIN CHARAKTER</h2>
   <div id="namewrap"><label>Name</label><input id="name" maxlength="16" placeholder="Dein Name"></div>
   <div id="opts"></div>
-  <div class="crow"><button class="smallbtn" id="rnd">🎲 Zufall</button><button class="bigbtn" id="play">LOS GEHT'S ▶</button></div>
+  <div class="crow"><button class="smallbtn" id="rnd">Zufall</button><button class="bigbtn" id="play">LOS GEHT'S ▶</button></div>
   <div class="crow"><button class="smallbtn" id="ccancel" style="display:none">Abbrechen</button></div>
   <small>Mit gedrückter Maus im Bild kannst du die Figur drehen.</small>
 </div>
@@ -192,7 +147,7 @@
   <canvas id="mini" width="200" height="200"></canvas>
   <div id="speed"></div>
   <div id="dialog"></div>
-  <div id="plock"><div class="pl1">🖱️ Klick ins Bild</div><div class="pl2">damit die Maus eingefangen wird und du dich frei umschauen kannst.<br><span>Esc = Pause &amp; Mauszeiger</span></div></div><div id="hint"></div>
+  <div id="plock"><div class="pl1">Klick ins Bild</div><div class="pl2">damit die Maus eingefangen wird und du dich frei umschauen kannst.<br><span>Esc = Pause &amp; Mauszeiger</span></div></div><div id="hint"></div>
   <div id="big"></div>
   <div id="cross"></div>
   <div id="hpwrap"><div id="hpbar"></div></div>
@@ -206,7 +161,7 @@
   <div id="toast"></div>
 </div>
 <div id="panel"><div class="ph"><span id="ptitle"></span><span id="pmoney"></span><button id="pclose">✕</button></div><div id="pbody"></div><div class="pfoot">E oder Esc zum Schließen</div></div>
-<div id="pause"><div class="phead"><h1>PAUSE</h1><div id="ptabs"><button data-t="map">KARTE</button><button data-t="stats">FORTSCHRITT</button><button data-t="set">EINSTELLUNGEN</button><button data-t="help">STEUERUNG</button></div></div><div id="ppage"></div><div class="pbtns"><button class="smallbtn" id="pbiz" style="display:none">💼 Business-App</button><button class="smallbtn" id="pnet" style="display:none">🌐 Online-Menü</button><button class="smallbtn" id="psave">💾 Speichern</button><button class="bigbtn" id="presume">WEITER ▶</button></div></div>
+<div id="pause"><div class="phead"><h1>PAUSE</h1><div id="ptabs"><button data-t="stats">FORTSCHRITT</button><button data-t="set">EINSTELLUNGEN</button><button data-t="help">STEUERUNG</button></div></div><div id="pinfo"></div><div id="ppage"></div><div class="pbtns"><button class="smallbtn" id="pbiz" style="display:none">Business-App</button><button class="smallbtn" id="pnet" style="display:none">Online-Menü</button><button class="smallbtn" id="psave">Speichern</button><button class="bigbtn" id="presume">WEITER ▶</button></div></div>
 <div id="credits2"></div>
 <div id="wwheel"></div>
 <div id="blackout"></div>
@@ -235,7 +190,6 @@
  </div>
 </div>
 <div id="radioPlayerHost" aria-hidden="true"></div>
-<script src="js/boot/countdown.js"></script>
 <script src="js/boot/legacy.js"></script>
 <script src="js/boot/intro.js"></script>
 <script src="js/menu/store.js"></script>

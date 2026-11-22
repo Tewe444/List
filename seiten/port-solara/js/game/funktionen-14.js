@@ -152,7 +152,7 @@ function updateFootCombat(dt){
 }
 function policeTick(dt){
  if(wanted>0&&!P.dead){
-  const want=Math.min(7,wanted+(wanted>2?1:0)+(wanted>4?1:0));spawnT-=dt;if(police.length<want&&spawnT<=0){spawnPolice();spawnT=2.5;}
+  const want=Math.min(5,wanted+(wanted>3?1:0));spawnT-=dt;if(police.length<want&&spawnT<=0){spawnPolice();spawnT=2.5;}
   const freshGps=!!(GPS_TRACK.last&&time-GPS_TRACK.lastAt<22),responsePoint=freshGps?GPS_TRACK.last:P.pos;
   let nearest=1e9;for(const c of police){const d=Math.hypot(c.pos.x-P.pos.x,c.pos.z-P.pos.z);nearest=Math.min(nearest,d);const responseD=Math.hypot(c.pos.x-responsePoint.x,c.pos.z-responsePoint.z);if(responseD>320){police.splice(police.indexOf(c),1);removeCar(c);break;}}
   let cops=0,nearCop=1e9;for(const n of peds)if(n.kind==='cop'&&n.state==='fight'){cops++;nearCop=Math.min(nearCop,n.c.g.position.distanceTo(P.pos));}
@@ -161,8 +161,8 @@ function policeTick(dt){
   const pspd=P.inCar?Math.abs(P.inCar.speed):0;
   if(!P.inAir&&wanted<=2&&((P.inCar&&nearest<7&&pspd<3)||(!P.inCar&&(nearest<5||wanted<=1&&nearCop<1.8))))bustT+=dt;else bustT=Math.max(0,bustT-dt);
   if(bustT>2.2){bustT=0;busted();}
-  const far=nearest>95&&nearCop>60;
-  if(far){evadeT+=dt;if(evadeT>(wanted>=4?18:wanted>=3?14:10)){evadeT=0;setWanted(wanted-1);}}else evadeT=0;}
+  const far=nearest>80&&nearCop>55&&(!policeHeli||policeHeli.g.position.distanceTo(P.pos)>120);
+  if(far){evadeT+=dt;if(evadeT>(wanted>=5?14:wanted>=4?12:wanted>=3?10:8)){evadeT=0;setWanted(wanted-1);}}else evadeT=0;}
  const fl=(time*7|0)%2;const on=wanted>0||police.length||EV.chase;polRed.emissiveIntensity=on?(fl?7:0):2.5;polBlue.emissiveIntensity=on?(fl?0:7):2.5;}
 function updateCamera(dt){
  const c=P.inCar,a=P.inAir,aim=aiming(),sc=scoped();
@@ -209,8 +209,8 @@ function updateHUD(dt){
  if(cashPopT>0){cashPopT-=dt;if(cashPopT<=0)$('cashpop').style.opacity=0;}
  if(frame%6===0){let s='';for(let i=0;i<5;i++)s+=`<span class="${i<wanted?'on':'off'}">★</span>`;$('stars').innerHTML=s;$('stars').className=wanted>0&&police.length?'flash':'';}
  const tm=mTimer!=null?mTimer:activity&&activity.timer!=null?activity.timer:null;
- $('timer').textContent=tm!=null?'⏱ '+fmtT(Math.max(0,tm)):race&&race.count<=0&&!race.result?'🏁 '+fmtT(race.t):'';
- $('clock').textContent+=' '+WX_ICON[WX.type]+(saveIcoT>0?' 💾':'');if(saveIcoT>0)saveIcoT-=dt;
+ $('timer').textContent=tm!=null?''+fmtT(Math.max(0,tm)):race&&race.count<=0&&!race.result?''+fmtT(race.t):'';
+ $('clock').textContent+=' '+WX_ICON[WX.type]+(saveIcoT>0?'':'');if(saveIcoT>0)saveIcoT-=dt;
  if(c)$('speed').innerHTML=`${Math.round(Math.abs(c.speed)*3.6)}<small> km/h</small>`;
  else if(a)$('speed').innerHTML=`${Math.round((a.type==='heli'?a.vel.length():a.speed)*3.6)}<small> km/h · ${Math.max(0,Math.round(a.g.position.y))} m</small>`;
  else $('speed').innerHTML='';
