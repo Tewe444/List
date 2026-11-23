@@ -1,0 +1,5 @@
+/* Sky-Games-Ladeanimation (Flugzeug, Sonne, Loading-Kreisel) */
+#sg-intro{position:fixed;inset:0;z-index:9999;background:#000;display:none;align-items:center;justify-content:center;transition:opacity .6s,background-color .5s;cursor:default;opacity:1}
+#sg-intro svg{width:min(100vw,121vh);height:min(82vw,100vh);display:block;overflow:visible}
+#sg-intro text{fill:#fff;font:700 32px Arial,Helvetica,sans-serif;letter-spacing:1px}
+#sg-loader{position:fixed;left:16px;bottom:16px;z-index:10000;display:none;align-items:center;gap:9px;opacity:0;pointer-events:none;color:#5C3600;font:15px Arial,Helvetica,sans-serif}
